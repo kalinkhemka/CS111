@@ -14,3 +14,6 @@
 
 #Bad First Inode
 ./ospfsfix fs_badfirstinode.img
+
+#Bad Completely
+./ospfsfix fs_badeverything.img
