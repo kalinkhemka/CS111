@@ -299,6 +299,7 @@ static int checks_bitmap() {
 	int new_free = 0;
 	void *start_bitmap = block_pointer(OSPFS_FREEMAP_BLK);
 
+	//Counts the number of free and used blocks in the image file we're analyzing
 	for (i = OSPFS_FREEMAP_BLK; i < fs.super.os_nblocks; i++){
 		if (bitvector_test(start_bitmap, i))
 			old_free++;
@@ -306,6 +307,7 @@ static int checks_bitmap() {
 			old_used++;
 	}
 
+	//Counts the number of free and used blocks in the new bitmap we made in the above function
 	for (i = OSPFS_FREEMAP_BLK; i < fs.super.os_nblocks; i++){
 		if (bitmap_get(i))
 			new_free++;
@@ -313,6 +315,7 @@ static int checks_bitmap() {
 			new_used++;
 	}
 
+	//Little error estimation
 	if (new_free - old_free < 0){
 		if (-(new_free - old_free) < 2)
 			new_free = old_free;
@@ -320,7 +323,6 @@ static int checks_bitmap() {
 		if (-(old_free - new_free) < 2)
 			old_free = new_free;
 	}
-
 	if (new_used - old_used < 0){
 		if (-(new_used - old_used) < 2)
 			new_used = old_used;
@@ -329,6 +331,7 @@ static int checks_bitmap() {
 			old_used = new_used;
 	}
 
+	//If the amount of used and free blocks are the same in both, then it is correct
 	if (new_free == old_free && new_used == old_used)
 		return FS_OK;
 	else{
@@ -339,7 +342,6 @@ static int checks_bitmap() {
 		FIXED("Incorrect free block bitmap values (Invariant 3/4)");
 		return FS_FIXED;
 	}
-
 	CORRECT("FREE BLOCK BITMAP");
 }
 
