@@ -12,11 +12,11 @@ HDRS = ospfs.h ospfsfix.h
 # When adding other files, append them to this list.
 OTHERS = Makefile README.md test_images
 
-ospfsfixer: clean $(SRCS)
+ospfsfix: clean $(SRCS)
 	@printf "MAKING OSPFSFIX\n"
 	gcc $(CFLAGS) -o ospfsfix $(SRCS)
 
-dist: ospfsfixer clean
+dist: ospfsfix clean
 	@printf "MAKING TARBALL\n"
 	rm -rf $(DIST)
 	mkdir $(DIST)
@@ -29,6 +29,6 @@ clean:
 	rm -rf $(DIST).tar.gz
 	rm -rf $(DIST)
 
-test: ospfsfixer
+test: ospfsfix
 	@printf "Testing\n"
 	./test_images

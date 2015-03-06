@@ -15,6 +15,26 @@
 // Data for our file system
 file_system_t fs;
 
+// Function used to analyze filesystem image
+static int checks_superblock();
+static int checks_inodes();
+static int checks_referenced_blocks();
+static int checks_directories();
+static int checks_bitmap();
+
+// helper functions
+static int bitmap_get(uint32_t block_num);
+static void bitmap_set(uint32_t block_num, int value);
+static int check_inode(uint32_t ino);
+static int check_direct_refs(ospfs_inode_t *inode);
+static int check_indirect_refs(ospfs_inode_t *inode);
+static int check_twice_indirect_refs(ospfs_inode_t *inode);
+static int truncates_inode(ospfs_inode_t *inode, int n);
+
+static inline uint32_t ospfs_inode_blockno(ospfs_inode_t *oi, uint32_t offset);
+static inline void *ospfs_inode_data(ospfs_inode_t *oi, uint32_t offset);
+static inline int bitvector_test(const void *vector, int i);
+
 //This function analyzes the file system
 int fix_file_system() {
 	int retval;
