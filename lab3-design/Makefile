@@ -13,22 +13,22 @@ HDRS = ospfs.h ospfsfix.h
 OTHERS = Makefile README.md tester
 
 ospfsfixer: clean $(SRCS)
-	@printf "\n* * * Making ospfsfixer * * *\n\n"
+	@printf "MAKING OSPFSFIX\n"
 	gcc $(CFLAGS) -o ospfsfix $(SRCS)
 
 dist: ospfsfixer clean
-	@printf "\n* * * Making tarball * * *\n\n"
+	@printf "MAKING TARBALL\n"
 	rm -rf $(DIST)
 	mkdir $(DIST)
 	cp $(SRCS) $(HDRS) $(OTHERS) $(DIST)/
 	tar cvf $(DIST).tar.gz $(DIST)
 
 clean:
-	@printf "\n* * * Cleaning directory * * *\n\n"
+	@printf "CLEANING\n"
 	rm -rf ospfsfix
 	rm -rf $(DIST).tar.gz
 	rm -rf $(DIST)
 
 test: ospfsfixer
-	@printf "\n* * * Testing * * *\n\n"
+	@printf "Testing\n"
 	./tester

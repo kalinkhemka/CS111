@@ -52,5 +52,30 @@ looping through the blocks referenced by this indirect block and truncating.
 Fourth, we check the directories. To check for errors, we loop through each directory's
 directory entries and check the entry refers to an existing inode, and has a valid name.
 
-Finally, we check the bitmap. Returns FS_OK if the bitmap we creat equals the bitmap of the
-image file.
+Finally, we check the bitmap. To do so, we count the number of free and used blocks in both the
+new bitmap we created and the old bitmap that was given to us. If the number of free blocks and used
+blocks is the same in both, then our bitmap test passes.
+
+
+To test the file we created, we created some bad image files manually. To do so, we played around with
+the ospfsformat.c file, and created image files that were incorrect.
+
+//#define bad_magic 
+//#define bad_num_blocks
+//#define bad_num_inodes
+//#define bad_first_inode
+
+#ifdef bad_magic
+super.os_magic += 0xFF;
+#endif
+#ifdef bad_num_blocks
+super.os_nblocks -= 1;
+#endif
+#ifdef bad_num_inodes
+super.os_ninodes -= 1;
+#endif
+#ifdef bad_first_inode
+super.os_firstinob += 0x1;
+#endif
+
+These tests allowed us to test the super block for inconsistencies.

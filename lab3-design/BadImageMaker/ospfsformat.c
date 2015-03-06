@@ -27,7 +27,8 @@
 //#define bad_magic 
 //#define bad_num_blocks
 //#define bad_num_inodes
-#define bad_first_inode
+//#define bad_first_inode
+//#define bad_inodes
 
 int diskfd;
 uint32_t nblocks;
@@ -321,10 +322,10 @@ opendisk(const char *name)
 	super.os_magic += 0xFF;
 	#endif
 	#ifdef bad_num_blocks
-	super.os_nblocks -= 1;
+	super.os_nblocks = 0;
 	#endif
 	#ifdef bad_num_inodes
-	super.os_ninodes -= 1;
+	super.os_ninodes = 0;
 	#endif
 	#ifdef bad_first_inode
 	super.os_firstinob += 0x1;

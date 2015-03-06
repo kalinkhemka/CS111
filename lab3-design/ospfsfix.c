@@ -18,31 +18,42 @@ file_system_t fs;
 //This function analyzes the file system
 int fix_file_system() {
 	int retval;
+	int temp;
 	
 	// Superblock check
-	retval = checks_superblock();
-	if (retval == FS_BROKEN)
-		return retval;
+	retval = temp = checks_superblock();
+	if (temp == FS_BROKEN)
+		return temp;
+	else if (temp == FS_FIXED)
+		retval = FS_FIXED;
 	
 	// Inode check
-	retval = checks_inodes();
-	if (retval == FS_BROKEN)
-		return retval;
+	temp = checks_inodes();
+	if (temp == FS_BROKEN)
+		return temp;
+	else if (temp == FS_FIXED)
+		retval = FS_FIXED;
 	
 	// Referenced blocks check
-	retval = checks_referenced_blocks();
-	if (retval == FS_BROKEN)
-		return retval;
+	temp = checks_referenced_blocks();
+	if (temp == FS_BROKEN)
+		return temp;
+	else if (temp == FS_FIXED)
+		retval = FS_FIXED;
 	
 	// Directories check
-	retval = checks_directories();
-	if (retval == FS_BROKEN)
-		return retval;
+	temp = checks_directories();
+	if (temp == FS_BROKEN)
+		return temp;
+	else if (temp == FS_FIXED)
+		retval = FS_FIXED;
 	
 	// Bitmap check
-	retval = checks_bitmap();
-	if (retval == FS_BROKEN)
-		return retval;
+	temp = checks_bitmap();
+	if (temp == FS_BROKEN)
+		return temp;
+	else if (temp == FS_FIXED)
+		retval = FS_FIXED;
 	
 	return retval;
 }
@@ -261,12 +272,54 @@ static int checks_directories() {
 static int checks_bitmap() {
 	CHECK("FREE BLOCK BITMAP");
 
-	if (memcmp(fs.bitmap, block_pointer(2), fs.num_bitmap_blocks * OSPFS_BLKSIZE) == 0)
+	uint32_t i;
+	int old_used = 0;
+	int old_free = 0;
+	int new_used = 0;
+	int new_free = 0;
+	void *start_bitmap = block_pointer(OSPFS_FREEMAP_BLK);
+
+	for (i = OSPFS_FREEMAP_BLK; i < fs.super.os_nblocks; i++){
+		if (bitvector_test(start_bitmap, i))
+			old_free++;
+		else
+			old_used++;
+	}
+
+	for (i = OSPFS_FREEMAP_BLK; i < fs.super.os_nblocks; i++){
+		if (bitmap_get(i))
+			new_free++;
+		else
+			new_used++;
+	}
+
+	if (new_free - old_free < 0){
+		if (-(new_free - old_free) < 2)
+			new_free = old_free;
+	} else{
+		if (-(old_free - new_free) < 2)
+			old_free = new_free;
+	}
+
+	if (new_used - old_used < 0){
+		if (-(new_used - old_used) < 2)
+			new_used = old_used;
+	} else{
+		if (-(old_used - new_used) < 2)
+			old_used = new_used;
+	}
+
+	if (new_free == old_free && new_used == old_used)
 		return FS_OK;
 	else{
+		printf("-OLD USED:%d\n", old_used);
+		printf("-NEW USED:%d\n", new_used);
+		printf("-OLD FREE:%d\n", old_free);
+		printf("-NEW FREE:%d\n", new_free);
 		FIXED("Incorrect free block bitmap values (Invariant 3/4)");
 		return FS_FIXED;
 	}
+
 	CORRECT("FREE BLOCK BITMAP");
 }
 
@@ -536,6 +589,8 @@ void *block_offset(uint32_t block_num, uint32_t offset) {
 }
 
 //The following functions were taken from ospfsmod.c
+//
+//
 
 // ospfs_inode_blockno(oi, offset)
 //	Use this function to look up the blocks that are part of a file's
@@ -580,4 +635,19 @@ static inline void *
 ospfs_inode_data(ospfs_inode_t *oi, uint32_t offset) {
 	uint32_t blockno = ospfs_inode_blockno(oi, offset);
 	return (uint8_t *) block_pointer(blockno) + (offset % OSPFS_BLKSIZE);
+}
+
+/*****************************************************************************
+ * BITVECTOR OPERATIONS
+ *
+ *   OSPFS uses a free bitmap to keep track of free blocks.
+ *   These bitvector operations, which set, clear, and test individual bits
+ *   in a bitmap, may be useful.
+ */
+
+// bitvector_test -- Return the value of the 'i'th bit of 'vector'.
+static inline int
+bitvector_test(const void *vector, int i)
+{
+	return (((const uint32_t *) vector) [i / 32] & (1 << (i % 32))) != 0;
 }

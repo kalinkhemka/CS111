@@ -40,7 +40,7 @@ extern file_system_t fs;
 //runs primary functions to try and fix file system
 int fix_file_system();
 
-// primary functions to analyze and fix file system based on invariants
+// Function used to analyze filesystem image
 static int checks_superblock();
 static int checks_inodes();
 static int checks_referenced_blocks();
@@ -61,5 +61,9 @@ void *block_offset(uint32_t block_num, uint32_t offset);
 
 static inline uint32_t ospfs_inode_blockno(ospfs_inode_t *oi, uint32_t offset);
 static inline void *ospfs_inode_data(ospfs_inode_t *oi, uint32_t offset);
+
+static inline void bitvector_set(void *vector, int i);
+static inline void bitvector_clear(void *vector, int i);
+static inline int bitvector_test(const void *vector, int i);
 
 #endif
