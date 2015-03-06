@@ -15,7 +15,7 @@ purpose was done in conjunction with all the rest of our tests.
 
 Our program loads in an image file, then runs analyzes_ospfs() which returns FS_BROKEN
 or FS_FIXED depending on how successful we were to fix a file system image. In this we 
-check 4 main components of the file system: the superblock, inode table, referenced 
+check 5 main components of the file system: the superblock, inode table, referenced 
 blocks, directories, and the bitmap.
 
 First, we checked the superblock. We ran multiple checks, checking whether: there was
