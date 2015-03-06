@@ -1,0 +1,16 @@
+#! /bin/bash -v
+
+#Test the control file
+./ospfsfix fs_correct.img
+
+#Bad Magic Number
+./ospfsfix fs_badmagic.img
+
+#Bad Block Number
+./ospfsfix fs_badblocknum.img
+
+#Bad Inode Number
+./ospfsfix fs_badinodenum.img
+
+#Bad First Inode
+./ospfsfix fs_badfirstinode.img

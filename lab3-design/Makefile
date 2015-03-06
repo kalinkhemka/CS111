@@ -10,7 +10,7 @@ SRCS = main.c ospfsfix.c
 HDRS = ospfs.h ospfsfix.h
 
 # When adding other files, append them to this list.
-OTHERS = Makefile README.md tester
+OTHERS = Makefile README.md test_images
 
 ospfsfixer: clean $(SRCS)
 	@printf "MAKING OSPFSFIX\n"
@@ -31,4 +31,4 @@ clean:
 
 test: ospfsfixer
 	@printf "Testing\n"
-	./tester
+	./test_images
