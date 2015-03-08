@@ -64,6 +64,8 @@ the ospfsformat.c file, and created image files that were incorrect.
 //#define bad_num_blocks
 //#define bad_num_inodes
 //#define bad_first_inode
+//#define badbitmapsmall
+//#define badbitmaplarge
 
 #ifdef bad_magic
 super.os_magic += 0xFF;
@@ -76,6 +78,18 @@ super.os_ninodes -= 1;
 #endif
 #ifdef bad_first_inode
 super.os_firstinob += 0x1;
+#endif
+
+#ifdef badbitmapsmall
+if (i == 2 || i == 3 || i == 6){
+	b->u.u[(i%OSPFS_BLKBITSIZE)/32] ^= ~(1<<(i%32));
+}
+#endif
+
+#ifdef badbitmaplarge
+b->u.u[(i%OSPFS_BLKBITSIZE)/32] ^= ~(1<<(i%32));
+i++;
+b->u.u[(i%OSPFS_BLKBITSIZE)/32] ^= ~(1<<(i%32));
 #endif
 
 These tests allowed us to test the super block for inconsistencies.

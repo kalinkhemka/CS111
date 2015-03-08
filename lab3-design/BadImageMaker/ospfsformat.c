@@ -29,6 +29,8 @@
 //#define bad_num_inodes
 //#define bad_first_inode
 //#define bad_inodes
+//#define badbitmapsmall
+//#define badbitmaplarge
 
 int diskfd;
 uint32_t nblocks;
@@ -705,8 +707,18 @@ finishfs(void)
 	for (i = 0; i < nextb; i++) {
 		b = getblk(OSPFS_FREEMAP_BLK + i / OSPFS_BLKBITSIZE, 0, BLOCK_BITS);
 		b->u.u[(i%OSPFS_BLKBITSIZE)/32] &= ~(1<<(i%32));
+		#ifdef badbitmapsmall
+		if (i == 2 || i == 3 || i == 6){
+			b->u.u[(i%OSPFS_BLKBITSIZE)/32] ^= ~(1<<(i%32));
+		}
+		#endif
 		putblk(b);
 	}
+	#ifdef badbitmaplarge
+		b->u.u[(i%OSPFS_BLKBITSIZE)/32] ^= ~(1<<(i%32));
+		i++;
+		b->u.u[(i%OSPFS_BLKBITSIZE)/32] ^= ~(1<<(i%32));
+		#endif
 	if (nblocks != nbitblock*OSPFS_BLKBITSIZE) {
 		b = getblk(OSPFS_FREEMAP_BLK + nbitblock - 1, 0, BLOCK_BITS);
 		for (i = nblocks % OSPFS_BLKBITSIZE; i < OSPFS_BLKBITSIZE; i++)

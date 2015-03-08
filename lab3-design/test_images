@@ -15,5 +15,11 @@
 #Bad First Inode
 ./ospfsfix fs_badfirstinode.img
 
+#Bad Bitmap Values - Less
+./ospfsfix fs_bitmapless.img
+
+#Bad Bitmap Values - Extra
+./ospfsfix fs_bitmapextra.img
+
 #Bad Completely
 ./ospfsfix fs_badeverything.img

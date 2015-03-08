@@ -335,6 +335,8 @@ static int checks_bitmap() {
 	if (new_free == old_free && new_used == old_used)
 		return FS_OK;
 	else{
+		if (memcmp(fs.bitmap, block_pointer(2), fs.num_bitmap_blocks * OSPFS_BLKSIZE) == 0)
+			return FS_OK;
 		printf("-OLD USED:%d\n", old_used);
 		printf("-NEW USED:%d\n", new_used);
 		printf("-OLD FREE:%d\n", old_free);

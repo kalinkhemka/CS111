@@ -10,7 +10,7 @@ SRCS = main.c ospfsfix.c
 HDRS = ospfs.h ospfsfix.h
 
 # When adding other files, append them to this list.
-OTHERS = Makefile README.md test_images
+OTHERS = Makefile README.md test_images fs_badblocknum.img fs_badeverything.img fs_badfirstinode.img fs_badinodenum.img fs_badmagic.img fs_correct.img
 
 ospfsfix: clean $(SRCS)
 	@printf "MAKING OSPFSFIX\n"
