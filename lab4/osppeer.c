@@ -30,7 +30,7 @@ static int listen_port;
 
 //Code for Lab 4
 //#define MAXFILESIZ 2147483648; //Defined as 2GB which is the max size allowed by most systems
-#define MAXFILESIZ 104857600; //Defined as 100 MiB
+#define MAXFILESIZ 104857600 //Defined as 100 MiB
 
 
 /*****************************************************************************
@@ -580,8 +580,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		}
 
 		//Exercise 2B - Check to make sure our max file size isn't passed
-		if (t->total_written > MAXFILESIZ)
-		{
+		if (t->total_written > MAXFILESIZ){
 			error("ERROR: File has exceeded max size allowed. Retrying with new peer.");
 			goto try_again;
 		}
