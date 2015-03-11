@@ -851,6 +851,8 @@ int main(int argc, char *argv[])
 		} else if (child < 0){//ERROR
 			error("Fork error. Could not upload file.\n");
 		}
+		else
+			prev_task = t;
 	}
 	//End 1 Code
 
