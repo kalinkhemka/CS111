@@ -186,7 +186,7 @@ function run_iso() {
 
     [ -z "$fdax" ] && fda="-fda $TMPFILE"
     "$qemu_bin" -help | grep -e -no-kqemu >/dev/null 2>&1 && qopt="$qopt -no-kqemu"
-    myrun "$qemu_bin" $qopt $bsw $biosdir $hda $hdb $hdc $hdd $fda $fdb $loadvm -tftp "$tmpdir" -redir tcp:2222::22
+    myrun "$qemu_bin" $qopt $bsw $biosdir $hda $hdb $hdc $hdd $fda $fdb $loadvm -tftp "$tmpdir" -redir tcp:7777::22
     exit $?
 }
 
@@ -205,7 +205,7 @@ function run_net() {
     mk_tmp_tarball
 
     "$qemu_bin" -help | grep -e -no-kqemu >/dev/null 2>&1 && qopt="$qopt -no-kqemu"
-    myrun "$qemu_bin" $qopt $bsw $biosdir $hda $hdb $hdc $hdd $fda $fdb $loadvm -tftp "$tmpdir" -redir tcp:2222::22
+    myrun "$qemu_bin" $qopt $bsw $biosdir $hda $hdb $hdc $hdd $fda $fdb $loadvm -tftp "$tmpdir" -redir tcp:7777::22
     exit $?
 }
 

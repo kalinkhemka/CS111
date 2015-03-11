@@ -693,7 +693,7 @@ int main(int argc, char *argv[])
 
 	// Default tracker is read.cs.ucla.edu
 	//osp2p_sscanf("131.179.80.139:11111", "%I:%d",
-	osp2p_sscanf("164.67.100.231:12998", "%I:%d",
+	osp2p_sscanf("164.67.100.231:12997", "%I:%d",
 		     &tracker_addr, &tracker_port);
 	if ((pwent = getpwuid(getuid()))) {
 		myalias = (const char *) malloc(strlen(pwent->pw_name) + 20);
@@ -760,13 +760,33 @@ int main(int argc, char *argv[])
 	register_files(tracker_task, myalias);
 
 	// First, download files named on command line.
-	for (; argc > 1; argc--, argv++)
-		if ((t = start_download(tracker_task, argv[1])))
-			task_download(t, tracker_task);
+	int child_count = 0;
+	for (; argc > 1; argc--, argv++){
+		if ((t = start_download(tracker_task, argv[1]))){
+			pid_t child;
+			child = fork();
+			if (child == 0){ //Child Process
+				task_download(t, tracker_task);
+				exit(0);
+			//} else if (child > 0){ //Parent Process
+			//	child_count++;
+			} else if (child < 0){//ERROR
+				error("Fork error. Could not download file.\n");
+			}
+		}
+	}
 
 	// Then accept connections from other peers and upload files to them!
-	while ((t = task_listen(listen_task)))
-		task_upload(t);
+	while ((t = task_listen(listen_task))){
+		pid_t child;
+			child = fork();
+			if (child == 0){ //Child Process
+				task_upload(t);
+				exit(0);
+			} else if (child < 0){//ERROR
+				error("Fork error. Could not upload file.\n");
+			}
+	}
 
 	return 0;
 }
