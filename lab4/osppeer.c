@@ -28,6 +28,10 @@ int evil_mode;			// nonzero iff this peer should behave badly
 static struct in_addr listen_addr;	// Define listening endpoint
 static int listen_port;
 
+//Code for Lab 4
+//#define MAXFILESIZ 2147483648; //Defined as 2GB which is the max size allowed by most systems
+#define MAXFILESIZ 104857600; //Defined as 100 MiB
+
 
 /*****************************************************************************
  * TASK STRUCTURE
@@ -35,7 +39,8 @@ static int listen_port;
  * a bounded buffer that simplifies reading from and writing to peers.
  */
 
-#define TASKBUFSIZ	8192	// Size of task_t::buf
+//#define TASKBUFSIZ	4096	// Size of task_t::buf
+#define TASKBUFSIZ	65536	// Size of task_t::buf (Increased to 2^16)
 #define FILENAMESIZ	256	// Size of task_t::filename
 
 typedef enum tasktype {		// Which type of connection is this?
@@ -476,7 +481,11 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
+
+	//Exercise 2A - Fix buffer overrun
 	strncpy(t->filename, filename, FILENAMESIZ);
+	t->filename[FILENAMESIZ - 1] = '\0';
+	//End 2A Code
 
 	// add peers
 	s1 = tracker_task->buf;
@@ -533,7 +542,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 	// at all.
 	for (i = 0; i < 50; i++) {
 		if (i == 0)
-			strncpy(t->disk_filename, t->filename, FILENAMESIZ);
+			strcpy(t->disk_filename, t->filename);
 		else
 			sprintf(t->disk_filename, "%s~%d~", t->filename, i);
 		t->disk_fd = open(t->disk_filename,
@@ -569,6 +578,13 @@ static void task_download(task_t *t, task_t *tracker_task)
 			error("* Disk write error");
 			goto try_again;
 		}
+
+		//Exercise 2B - Check to make sure our max file size isn't passed
+		if (t->total_written > MAXFILESIZ){
+			error("ERROR: File has exceeded max size allowed. Retrying with new peer.")
+			goto try_again;
+		}
+		//End 2B Code
 	}
 
 	// Empty files are usually a symptom of some error.
@@ -648,6 +664,29 @@ static void task_upload(task_t *t)
 		goto exit;
 	}
 	t->head = t->tail = 0;
+
+	//Exercise 2B - Check filename size
+	if (strlen(t->buf) > FILENAMESIZ){
+		error("ERROR: Filename is too large.")
+		goto exit;
+	}
+
+	//Exercise 2B - Check that we are working only within current directory
+	char path[PATH_MAX];
+	char work_dir[PATH_MAX];
+	if (!getcwd(work_dir, PATH_MAX)){
+		error("ERROR: Invalid working directory.")
+		goto exit;
+	}
+	if (!realpath(t->filename, path)){
+		error("ERROR: Invalid file path.")
+		goto exit;
+	}
+	if (strncmp(work_dir, path, strlen(work_dir))){
+		error("ERROR: %s not located within working directory.", t->filename)
+		goto exit;
+	}
+	//End 2B Code
 
 	t->disk_fd = open(t->filename, O_RDONLY);
 	if (t->disk_fd == -1) {
@@ -760,7 +799,7 @@ int main(int argc, char *argv[])
 	register_files(tracker_task, myalias);
 
 	// First, download files named on command line.
-	//int child_count = 0;
+	//Exercise 1 - Parallel Downloads
 	for (; argc > 1; argc--, argv++){
 		if ((t = start_download(tracker_task, argv[1]))){
 			pid_t child;
@@ -768,15 +807,15 @@ int main(int argc, char *argv[])
 			if (child == 0){ //Child Process
 				task_download(t, tracker_task);
 				exit(0);
-			//} else if (child > 0){ //Parent Process
-			//	child_count++;
 			} else if (child < 0){//ERROR
 				error("Fork error. Could not download file.\n");
 			}
 		}
 	}
+	//End 1 Code
 
 	// Then accept connections from other peers and upload files to them!
+	//Exercise 1 - Parallel Uploads
 	while ((t = task_listen(listen_task))){
 		pid_t child;
 			child = fork();
@@ -787,6 +826,7 @@ int main(int argc, char *argv[])
 				error("Fork error. Could not upload file.\n");
 			}
 	}
+	//End 1 Code
 
 	return 0;
 }

@@ -13,23 +13,34 @@
 # information you'd like us to know, please add it at the end of the file.
 
 # Partner 1
-Name: 
-Student ID: 
-Email: 
+Name: Kalin Khemka
+Student ID: 304-336-969
+Email: kkhemka@ucla.edu
 
 # Partner 2 (if you're working in a team)
-Name: 
-Student ID: 
-Email: 
+Name: Vir Thakor
+Student ID: 304-273-900
+Email: virthakor@ucla.edu
 
 # EXERCISE 1: What method you used to make your peer download and upload
 #    files in parallel?  (~1-3 sentences)
 
+We implemented a forking system to make the downloads and uploads in parallel.
+
 # EXERCISE 2A: What conditions did you find and fix that would have
 #    triggered a buffer overrun bug?  (~1-3 sentences each)
 
+There was a strcpy command which would have caused the buffer overrun problem in
+the function "start_download". We changed it to a strncpy, where we limited the
+size of the file that could be copied to FILENAMESIZ. This will prevent the
+buffer overrun bug. 
+
 # EXERCISE 2B: What other robustness problems did you fix?  (~1-3 sentences
 #    each)
+
+1. Checked for the working directory
+2. Increased TASKBUFSIZE to prevent too many peers bug
+3. Imposed a limit of 100MiB to prevent unlimited data downloading
 
 # EXERCISE 3: Describe the attacks you implemented for "evil mode".  Why
 #    are they attacks?  (~3-10 sentences each)
