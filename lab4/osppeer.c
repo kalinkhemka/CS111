@@ -667,7 +667,7 @@ static void task_upload(task_t *t)
 
 	//Exercise 2B - Check filename size
 	if (strlen(t->buf) > FILENAMESIZ){
-		error("ERROR: Filename is too large.")
+		error("ERROR: Filename is too large.");
 		goto exit;
 	}
 
@@ -675,15 +675,15 @@ static void task_upload(task_t *t)
 	char path[PATH_MAX];
 	char work_dir[PATH_MAX];
 	if (!getcwd(work_dir, PATH_MAX)){
-		error("ERROR: Invalid working directory.")
+		error("ERROR: Invalid working directory.");
 		goto exit;
 	}
 	if (!realpath(t->filename, path)){
-		error("ERROR: Invalid file path.")
+		error("ERROR: Invalid file path.");
 		goto exit;
 	}
 	if (strncmp(work_dir, path, strlen(work_dir))){
-		error("ERROR: %s not located within working directory.", t->filename)
+		error("ERROR: %s not located within working directory.", t->filename);
 		goto exit;
 	}
 	//End 2B Code
