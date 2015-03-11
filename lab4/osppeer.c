@@ -692,7 +692,8 @@ int main(int argc, char *argv[])
 	struct passwd *pwent;
 
 	// Default tracker is read.cs.ucla.edu
-	osp2p_sscanf("131.179.80.139:11111", "%I:%d",
+	//osp2p_sscanf("131.179.80.139:11111", "%I:%d",
+	osp2p_sscanf("164.67.100.231:12998", "%I:%d",
 		     &tracker_addr, &tracker_port);
 	if ((pwent = getpwuid(getuid()))) {
 		myalias = (const char *) malloc(strlen(pwent->pw_name) + 20);
