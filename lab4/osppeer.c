@@ -742,7 +742,7 @@ static void task_upload(task_t *t)
 //	The main loop!
 int main(int argc, char *argv[])
 {
-	task_t *tracker_task, *listen_task, *t;
+	task_t *tracker_task, *listen_task, *t, *prev_task;
 	struct in_addr tracker_addr;
 	int tracker_port;
 	char *s;
@@ -816,6 +816,7 @@ int main(int argc, char *argv[])
 	tracker_task = start_tracker(tracker_addr, tracker_port);
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
+	prev_task = NULL;
 
 	// First, download files named on command line.
 	//Exercise 1 - Parallel Downloads
@@ -835,15 +836,21 @@ int main(int argc, char *argv[])
 
 	// Then accept connections from other peers and upload files to them!
 	//Exercise 1 - Parallel Uploads
-	while ((t = task_listen(listen_task))){
+	while ((t = task_listen(listen_task))) {
+		// don't allow immediately repeated requests from the same peer
+		if (prev_task && prev_task->peer_fd == t->peer_fd) {
+			error("* Error: repeat requests from same peer.\n");
+			prev_task = NULL;
+			continue;
+		}
 		pid_t child;
-			child = fork();
-			if (child == 0){ //Child Process
-				task_upload(t);
-				exit(0);
-			} else if (child < 0){//ERROR
-				error("Fork error. Could not upload file.\n");
-			}
+		child = fork();
+		if (child == 0){ //Child Process
+			task_upload(t);
+			exit(0);
+		} else if (child < 0){//ERROR
+			error("Fork error. Could not upload file.\n");
+		}
 	}
 	//End 1 Code
 
