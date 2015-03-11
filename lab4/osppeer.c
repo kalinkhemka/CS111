@@ -97,9 +97,11 @@ static task_t *task_new(tasktype_t type)
 	t->total_written = 0;
 	t->peer_list = NULL;
 
-	strcpy(t->filename, "");
-	strcpy(t->disk_filename, "");
-
+	// Zero out filenames as opposed to making them the empty string
+	memset(t->filename, 0, FILENAMESIZ);
+	memset(t->disk_filename, 0, FILENAMESIZ);
+	
+	
 	return t;
 }
 
@@ -481,6 +483,13 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
+	
+	// check for the filename size
+	if (FILENAMESIZ <  strlen(t->filename)) 
+	{
+		error("* Error: filename is too large.\n");
+		goto exit;
+	}
 
 	//Exercise 2A - Fix buffer overrun
 	strncpy(t->filename, filename, FILENAMESIZ);
@@ -514,7 +523,14 @@ static void task_download(task_t *t, task_t *tracker_task)
 	int i, ret = -1;
 	assert((!t || t->type == TASK_DOWNLOAD)
 	       && tracker_task->type == TASK_TRACKER);
-
+	
+	// check for the filename size
+	if (FILENAMESIZ <  strlen(t->filename)) 
+	{
+		error("* Error: filename is too large.\n");
+		goto exit;
+	}
+	
 	// Quit if no peers, and skip this peer
 	if (!t || !t->peer_list) {
 		error("* No peers are willing to serve '%s'\n",
@@ -542,7 +558,10 @@ static void task_download(task_t *t, task_t *tracker_task)
 	// at all.
 	for (i = 0; i < 50; i++) {
 		if (i == 0)
+		{
 			strcpy(t->disk_filename, t->filename);
+			t->disk_filename[FILENAMESIZ - 1] = '\0';
+		}
 		else
 			sprintf(t->disk_filename, "%s~%d~", t->filename, i);
 		t->disk_fd = open(t->disk_filename,
