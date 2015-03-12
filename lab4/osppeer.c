@@ -525,11 +525,11 @@ static void task_download(task_t *t, task_t *tracker_task)
 	       && tracker_task->type == TASK_TRACKER);
 	
 	// check for the filename size
-	if (FILENAMESIZ <  strlen(t->filename)) 
-	{
-		error("* Error: filename is too large.\n");
-		goto exit;
-	}
+	//if (FILENAMESIZ <  strlen(t->filename)) 
+	//{
+	//	error("* Error: filename is too large.\n");
+	//	goto exit;
+	//}
 	
 	// Quit if no peers, and skip this peer
 	if (!t || !t->peer_list) {
