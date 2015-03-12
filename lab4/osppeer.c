@@ -775,12 +775,13 @@ static void task_upload(task_t *t)
 		if (ret == TBUF_ERROR) {
 			error("* Disk read error");
 			goto exit;
-		} else if (ret == TBUF_END && t->head == t->tail)
+		} else if (ret == TBUF_END && t->head == t->tail) {
 			/* End of file */
 			if (evil_mode == 3)
 				lseek(t->disk_fd, 0, 0); // continue writing by reset file pointer to beginning of file
 			else
 				break;
+		}
 	}
 
 	message("* Upload of %s complete\n", t->filename);
