@@ -767,6 +767,7 @@ int main(int argc, char *argv[])
 	struct passwd *pwent;
 	int i;
 	char file[8];
+	pid_t pid;
 
 	// Default tracker is read.cs.ucla.edu
 	//osp2p_sscanf("131.179.80.139:11111", "%I:%d",
