@@ -78,7 +78,7 @@ typedef struct task {
 				// function initializes this list;
 				// task_pop_peer() removes peers from it, one
 				// at a time, if a peer misbehaves.
-	char digest[128];
+	char digest[MD5_TEXT_DIGEST_MAX_SIZE];
 } task_t;
 
 
@@ -148,29 +148,22 @@ static void task_free(task_t *t)
 /********************************************
 * MD5 Checksum Creator
 ********************************************/
-#define BUFFSIZE 4096
+#define BUFFSIZE 2048
 int md5_create(char *filename, char *digest)
 {
-	//char buf[BUFFSIZE + 1];
-	unsigned char *buf = malloc(sizeof(char) * BUFFSIZE);
+	char buf[BUFFSIZE + 1];
 	md5_state_t s;
 	md5_init(&s);
 	int read_size, f;
-	int i = 0;
 
 	if ((f = open(filename, O_RDONLY))) {
 		while (1) {
 			read_size = (int) read(f, buf, BUFFSIZE);
-			buf[BUFFSIZE] = '\0';
-			i++;
+			buf[read_size] = '\0';
 			if (read_size == 0) { 
-				message("REACHED END OF CHECKSUM\n");
 				read_size = md5_finish_text(&s, digest, 1);
 				digest[read_size] = '\0';
-				message("Digest: %s\n", digest);
-				message("Number of loops: %d\n", i);
 				close(f);
-				free (buf);
 				return read_size;
 			}
 			md5_append(&s, (md5_byte_t*) buf, read_size);
@@ -179,28 +172,6 @@ int md5_create(char *filename, char *digest)
 	else
 		return 0;
 }
-
-/*int md5_create(char *filename, char *digest)
-{
-	FILE *file;
-	file = fopen(filename, "r");
-	fseek(file, 0, SEEK_END);
-	unsigned long num_bytes = ftell(file);
-	fseek(file, 0, SEEK_SET);
-	unsigned char *file_bytes = malloc(sizeof(char) * num_bytes);
-	fread(file_bytes, 1, num_bytes, file);
-	//Start the md5
-	md5_state_t *pms = malloc(sizeof(md5_state_t));
-	md5_init(pms);
-	md5_append(pms, file_bytes, num_bytes);
-	//Append null terminator to end of result and also fill in result with md5
-	int retval = md5_finish_text(pms, digest, 1);
-	digest[retval] = '\0';
-	free(pms);
-	free(file_bytes);
-	fclose(file);
-	return retval;
-}*/
 
 
 /******************************************************************************
@@ -488,7 +459,7 @@ static void register_files(task_t *tracker_task, const char *myalias)
 			continue;
 
 		//File is registered with a checksum
-		//char *checksum = malloc(sizeof(char)*128);
+		//char *checksum = malloc(sizeof(char)*MD5_TEXT_DIGEST_MAX_SIZE + 1);
 		//md5_create(ent->d_name, checksum);
 
 		//osp2p_writef(tracker_task->peer_fd, "HAVE %s %s\n", ent->d_name, checksum);
@@ -544,7 +515,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		
 		if(tracker_task->buf[messagepos] == '2') {
 			osp2p_snscanf(s1, (s2 - s1), "%s\n", tracker_task->digest);
-			tracker_task->digest[128 - 1] = '\0';
+			tracker_task->digest[MD5_TEXT_DIGEST_MAX_SIZE - 1] = '\0';
 			if (strlen(tracker_task->digest) < 5) {
 				strcpy(tracker_task->digest, "");
 				message("* Rejected checksum for '%s'. Checksum too short.\n", filename);
@@ -693,8 +664,8 @@ static void task_download(task_t *t, task_t *tracker_task)
 
 		//Check the MD5 checksum to make sure file matches
 		if (strlen(tracker_task->digest) > 0) {
-			char check_digest[128];
-			if (md5_create(t->filename, check_digest) == 0) {
+			char check_digest[MD5_TEXT_DIGEST_MAX_SIZE + 1];
+			if (md5_create(t->disk_filename, check_digest) == 0) {
 				message("* Unable to create MD5 check for '%s'. \n", t->filename);
 				unlink(t->disk_filename);
 				task_free(t);
@@ -1026,8 +997,8 @@ int main(int argc, char *argv[])
 				exit(0);
 			} else if (child < 0){//ERROR
 				error("Fork error. Could not download file.\n");
-			} else
-				task_free(t);
+			} //else
+				//task_free(t);
 		}
 	}
 	//End 1 Code
