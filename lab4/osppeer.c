@@ -825,6 +825,7 @@ void download_attack(task_t *tracker_task)
 			close(t->peer_fd);
 			//All attacks on the peer done
 			message("* Tried attacking %s:%d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
+			task_pop_peer(t);
 			exit(0);
 	}
 	task_free(t);
