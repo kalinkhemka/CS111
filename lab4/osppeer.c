@@ -796,15 +796,13 @@ static void task_upload(task_t *t)
 	}
 
 	message("* Transferring file %s\n", t->filename);
-
-	int ret = 0;
 	
 	// Exercise 3 - Overrun disk
 	if (evil_mode)
 	{
 		message("* Attack with a disk overrun.\n");
 		while (1) {
-			ret = osp2p_writef(t->peer_fd, "Cat1,Cat2,Cat3,Cat4.");
+			int ret = osp2p_writef(t->peer_fd, "Cat1,Cat2,Cat3,Cat4.");
 			if (ret == TBUF_ERROR){
 				message("* The disk overrun attack was successful, we have a peer write error.");
 				goto exit;
@@ -815,7 +813,7 @@ static void task_upload(task_t *t)
 		// Now, read file from disk and write it to the requesting peer.
 		while (1) {
 			//int ret = write_from_taskbuf(t->peer_fd, t);
-			ret = write_from_taskbuf(t->peer_fd, t);
+			int ret = write_from_taskbuf(t->peer_fd, t);
 			if (ret == TBUF_ERROR) {
 				//if (evil_mode == 3)
 				//	message("* The disk overrun attack was successful, we have a peer write error.");
