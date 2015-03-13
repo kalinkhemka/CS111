@@ -78,7 +78,7 @@ typedef struct task {
 				// function initializes this list;
 				// task_pop_peer() removes peers from it, one
 				// at a time, if a peer misbehaves.
-	char digest[MD5_TEXT_DIGEST_MAX_SIZE];
+	char digest[MD5_TEXT_DIGEST_SIZE];
 } task_t;
 
 
@@ -483,7 +483,7 @@ static void register_files(task_t *tracker_task, const char *myalias)
 			continue;
 
 		//File is registered with a checksum
-		//char *checksum = malloc(sizeof(char)*MD5_TEXT_DIGEST_MAX_SIZE);
+		//char *checksum = malloc(sizeof(char)*MD5_TEXT_DIGEST_SIZE);
 		//md5_create(ent->d_name, checksum);
 
 		//osp2p_writef(tracker_task->peer_fd, "HAVE %s %s\n", ent->d_name, checksum);
@@ -586,7 +586,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		
 		if(tracker_task->buf[messagepos] == '2') {
 			osp2p_snscanf(s1, (s2 - s1), "%s\n", tracker_task->digest);
-			tracker_task->digest[MD5_TEXT_DIGEST_MAX_SIZE - 1] = '\0';
+			tracker_task->digest[MD5_TEXT_DIGEST_SIZE - 1] = '\0';
 			if (strlen(tracker_task->digest) < 5) {
 				strcpy(tracker_task->digest, "");
 				message("* Rejected checksum for '%s'. Checksum too short.\n", filename);
@@ -689,7 +689,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 
 		//Check the MD5 checksum to make sure file matches
 		if (strlen(tracker_task->digest) > 0) {
-			char check_digest[MD5_TEXT_DIGEST_MAX_SIZE];
+			char check_digest[MD5_TEXT_DIGEST_SIZE];
 			if (md5_create(t->disk_filename, check_digest) == 0) {
 				message("* Unable to create MD5 check for '%s'. \n", t->disk_filename);
 				unlink(t->disk_filename);
