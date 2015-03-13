@@ -169,7 +169,7 @@ int md5_create(char *filename, char *digest)
 				close(f);
 				return read_size;
 			}
-			md5_append(&s, (md5_byte_t*) buf, read_size);
+			md5_append(s, (md5_byte_t*) buf, read_size);
 		}
 	}
 	else
