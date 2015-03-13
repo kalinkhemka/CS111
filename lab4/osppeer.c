@@ -148,7 +148,7 @@ static void task_free(task_t *t)
 /********************************************
 * MD5 Checksum Creator
 ********************************************/
-/*#define BUFFSIZE 4096
+#define BUFFSIZE 4096
 int md5_create(char *filename, char *digest)
 {
 	char buf[BUFFSIZE + 1];
@@ -165,6 +165,7 @@ int md5_create(char *filename, char *digest)
 				message("REACHED END OF CHECKSUM\n");
 				read_size = md5_finish_text(s, digest, 1);
 				digest[read_size] = '\0';
+				message("Digest: %s\n", digest);
 				close(f);
 				return read_size;
 			}
@@ -173,9 +174,9 @@ int md5_create(char *filename, char *digest)
 	}
 	else
 		return 0;
-}*/
+}
 
-int md5_create(char *filename, char *digest)
+/*int md5_create(char *filename, char *digest)
 {
 	FILE *file;
 	file = fopen(filename, "r");
@@ -195,7 +196,7 @@ int md5_create(char *filename, char *digest)
 	free(file_bytes);
 	fclose(file);
 	return retval;
-}
+}*/
 
 
 /******************************************************************************
