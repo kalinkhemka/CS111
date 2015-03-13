@@ -152,7 +152,7 @@ static void task_free(task_t *t)
 int md5_create(char *filename, char *digest)
 {
 	//char buf[BUFFSIZE + 1];
-	unsigned char buf = (char)malloc(sizeof(char) * BUFFSIZE);
+	unsigned char *buf = malloc(sizeof(char) * BUFFSIZE);
 	md5_state_t s;
 	md5_init(&s);
 	int read_size, f;
