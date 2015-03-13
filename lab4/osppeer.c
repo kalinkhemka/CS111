@@ -750,38 +750,14 @@ static void task_upload(task_t *t)
 
 	//Execise 2B
 	//Check if file is from current directory
-DIR *dir;
-struct dirent *ent;
-struct stat s;
-int file_exists = 0;
-if ((dir = opendir(".")) == NULL){
-die("bad filename %s", t->filename);
-die("open directory: %s", strerror(errno));
-}
-//Checks that there is a file in current directory with the file
-while ((ent = readdir(dir)) != NULL) {
-int namelen = strlen(ent->d_name);
-// don't depend on unreliable parts of the dirent structure
-// and only report regular files. Do not change these lines.
-if (stat(ent->d_name, &s) < 0 || !S_ISREG(s.st_mode)
-|| (namelen > 2 && ent->d_name[namelen - 2] == '.'
-&& (ent->d_name[namelen - 1] == 'c'
-|| ent->d_name[namelen - 1] == 'h'))
-|| (namelen > 1 && ent->d_name[namelen - 1] == '~'))
-continue;
-//Check that the file actually exists in this directory
-//This should account if filename has ../ cause strings will be different.
-if(strcmp(ent->d_name, t->filename)){
-file_exists = 1;
-break;
-}
-}
-//Return an error if this occurs
-if(file_exists == 0){
-error("Trying to upload a file that doesn't exist or not in current directory");
-goto exit;
-}
-//End 2B
+	int k;
+	for (k = 0; k < FILENAMESIZ && t->filename[k] != '\0'; k++){
+		if (t->filename[k] == '/'){
+			error("ERROR: Accessing file not in the current directory.");
+			goto exit;
+		}
+	}
+	//End 2B
 
 	t->disk_fd = open(t->filename, O_RDONLY);
 	if (t->disk_fd == -1) {
