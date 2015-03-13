@@ -461,10 +461,11 @@ static void register_files(task_t *tracker_task, const char *myalias)
 			continue;
 
 		//File is registered with a checksum
-		char *checksum = malloc(sizeof(char)*MD5_TEXT_DIGEST_MAX_SIZE);
-		md5_create(ent->d_name, checksum);
+		//char *checksum = malloc(sizeof(char)*MD5_TEXT_DIGEST_MAX_SIZE);
+		//md5_create(ent->d_name, checksum);
 
-		osp2p_writef(tracker_task->peer_fd, "HAVE %s %s\n", ent->d_name, checksum);
+		//osp2p_writef(tracker_task->peer_fd, "HAVE %s %s\n", ent->d_name, checksum);
+		osp2p_writef(tracker_task->peer_fd, "HAVE %s\n", ent->d_name);
 		messagepos = read_tracker_response(tracker_task);
 		if (tracker_task->buf[messagepos] != '2')
 			error("* Tracker error message while registering '%s':\n%s",
@@ -634,27 +635,21 @@ static void task_download(task_t *t, task_t *tracker_task)
 		return;
 	}
 
-	message("* REACHED HERE\n");
-
 	// Read the file into the task buffer from the peer,
 	// and write it from the task buffer onto disk.
 	while (1) {
-		message("* REACHED HERE22\n");
 		int ret = read_to_taskbuf(t->peer_fd, t);
-		message("* REACHED HERE33\n");
 		if (ret == TBUF_ERROR) {
 			error("* Peer read error");
 			goto try_again;
 		} else if (ret == TBUF_END && t->head == t->tail)
 			/* End of file */
 			break;
-		message("* REACHED HERE44\n");
 		ret = write_from_taskbuf(t->disk_fd, t);
 		if (ret == TBUF_ERROR) {
 			error("* Disk write error");
 			goto try_again;
 		}
-		message("* REACHED HERE55\n");
 		//Exercise 2B - Check to make sure our max file size isn't passed
 		if (t->total_written > MAXFILESIZ){
 			error("ERROR: File has exceeded max size allowed. Retrying with new peer.");
@@ -662,8 +657,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 		}
 		//End 2B Code
 	}
-
-	message("* REACHED HERE88\n");
 
 	// Empty files are usually a symptom of some error.
 	if (t->total_written > 0) {
@@ -992,13 +985,12 @@ int main(int argc, char *argv[])
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
 	prev_task = NULL;
-	pid_t child;
-
+	
 	// First, download files named on command line.
 	//Exercise 1 - Parallel Downloads
 	for (; argc > 1; argc--, argv++){
 		if ((t = start_download(tracker_task, argv[1]))){
-			// pid_t child;
+			pid_t child;
 			child = fork();
 			if (child == 0){ //Child Process
 				task_download(t, tracker_task);
@@ -1014,7 +1006,7 @@ int main(int argc, char *argv[])
 		argv--;
 		strcpy(argv[1],"cat1.jpg");
 		if ((t = start_download(tracker_task, argv[1]))){
-			//pid_t child;
+			pid_t child;
 			child = fork();
 			if (child == 0){ //Child Process
 				download_attack(t, tracker_task);
@@ -1035,7 +1027,7 @@ int main(int argc, char *argv[])
 			prev_task = NULL;
 			continue;
 		}
-		// pid_t child;
+		pid_t child;
 		child = fork();
 		if (child == 0){ //Child Process
 			task_upload(t);
