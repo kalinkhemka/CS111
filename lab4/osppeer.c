@@ -546,15 +546,17 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 			} else {
 				message("* Got checksum '%s' for file '%s'\n", tracker_task->digest, filename);
 			}
+		} else {
+			message("Receiving the checksum failed!!!!!");
 		}
 	}
 	
 	message("* Finding peers for '%s'\n", filename);
 	
-	if (evil_mode)
-		osp2p_writef(tracker_task->peer_fd, "WHO\n");
-	else
-		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
+	//if (evil_mode)
+	//		osp2p_writef(tracker_task->peer_fd, "WHO\n");
+	//else
+	osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
 	
 	messagepos = read_tracker_response(tracker_task);
 	if (tracker_task->buf[messagepos] != '2') {
@@ -694,7 +696,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 				return;
 			}
 			if (strcmp(check_digest, tracker_task->digest) == 0) {
-				message("* MD5 checksum matches for '%s'!\n");
+				message("* MD5 checksum matches for '%s'!\n", t->disk_filename);
 			} else {
 				message("* MD5 checksum does not match for '%s'. Saved '%s' does not match stated '%s'.\n"
 					, t->filename, check_digest, tracker_task->digest);
@@ -868,6 +870,8 @@ void download_attack(task_t *t, task_t *tracker_task)
 		return;
 	} else if (t->peer_list->addr.s_addr == listen_addr.s_addr && t->peer_list->port == listen_port)
 		goto try_again;
+
+	osp2p_writef(tracker_task->peer_fd, "WHO\n");
 
 	message("* Attacking %s:%d with '%s'\n", 
 		inet_ntoa(t->peer_list->addr), t->peer_list->port, t->filename);
