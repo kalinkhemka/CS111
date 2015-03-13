@@ -34,6 +34,8 @@ There was a strcpy command which would have caused the buffer overrun problem in
 the function "start_download". We changed it to a strncpy, where we limited the
 size of the file that could be copied to FILENAMESIZ. This will prevent the
 buffer overrun bug. 
+Added a check to make sure that if we repeatedly receive requests from the same peer
+we continue to allow for other peers to make requests as well.
 
 # EXERCISE 2B: What other robustness problems did you fix?  (~1-3 sentences
 #    each)
