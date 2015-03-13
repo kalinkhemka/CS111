@@ -145,6 +145,31 @@ static void task_free(task_t *t)
 	}
 }
 
+/********************************************
+* MD5 Checksum Creator
+********************************************/
+
+void md5_create(char* result, char *file_name, unsigned long num_bytes)
+{
+	FILE *file;
+	file = fopen(file_name, "r");
+	unsigned char *file_bytes = malloc(sizeof(char) * num_bytes);
+	fread(file_bytes, 1, num_bytes, file);
+	
+	//Start the md5
+	md5_state_t *pms = malloc(sizeof(md5_state_t));
+	md5_init(pms);
+	md5_append(pms, file_bytes, num_bytes);
+	
+	//Append null terminator to end of result and also fill in result with md5
+	int num_char = md5_finish_text(pms, result, 1);
+	result[num_char] = '\0';
+	
+	free(pms);
+	free(file_bytes);
+	fclose(file);
+}
+
 
 /******************************************************************************
  * TASK BUFFER
@@ -430,7 +455,18 @@ static void register_files(task_t *tracker_task, const char *myalias)
 		    || (namelen > 1 && ent->d_name[namelen - 1] == '~'))
 			continue;
 
-		osp2p_writef(tracker_task->peer_fd, "HAVE %s\n", ent->d_name);
+		//Get size of the file
+		FILE *file;
+		file = fopen(ent->d_name, "r");
+		fseek(file, 0, SEEK_END);
+		unsigned long num_bytes = ftell(file);
+		fclose(file);
+
+		//Check valid md5 after downloading, so it can check validity of file
+		char *result = malloc(sizeof(char)*MD5_TEXT_DIGEST_SIZE);
+		md5_create(result, ent->d_name, num_bytes);
+
+		osp2p_writef(tracker_task->peer_fd, "HAVE %s%s\n", ent->d_name, result);
 		messagepos = read_tracker_response(tracker_task);
 		if (tracker_task->buf[messagepos] != '2')
 			error("* Tracker error message while registering '%s':\n%s",
@@ -613,6 +649,31 @@ static void task_download(task_t *t, task_t *tracker_task)
 
 	// Empty files are usually a symptom of some error.
 	if (t->total_written > 0) {
+
+		//Before file is said to be downloaded, check the MD5 checksum
+		char *checksum = malloc(sizeof(char)*MD5_TEXT_DIGEST_MAX_SIZE);
+		md5_convert(checksum, t->disk_filename, (unsigned long) t->total_written);
+		
+		//Retrieve checksum from tracker
+		osp2p_writef(tracker_task->peer_fd, "MD5SUM %s\n", t->filename);
+		size_t messagepos = read_tracker_response(tracker_task);
+		char *tracker = malloc(sizeof(char) * MD5_TEXT_DIGEST_MAX_SIZE);
+		strncpy(tracker, tracker_task->buf, messagepos-1);
+		tracker[(int)messagepos] = '\0';
+		
+		//Compare the two checksums
+		if(messagepos == 0 || tracker == NULL){
+			message("MD5 is not verifiable.");
+		}else if(strcmp(checksum, tracker) != 0){
+			error("The file downloaded is corrupt or different, trying next peer...");
+			free(checksum);
+			free(tracker);
+			goto try_again;
+		}
+		free(checksum);
+		free(tracker);
+
+		//Continue with downloading file debrief
 		message("* Downloaded '%s' was %lu bytes long\n",
 			t->disk_filename, (unsigned long) t->total_written);
 		// Inform the tracker that we now have the file,
