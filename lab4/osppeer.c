@@ -611,10 +611,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 	// at all.
 	for (i = 0; i < 50; i++) {
 		if (i == 0)
-		{
 			strcpy(t->disk_filename, t->filename);
-			//t->disk_filename[FILENAMESIZ - 1] = '\0';
-		}
 		else
 			sprintf(t->disk_filename, "%s~%d~", t->filename, i);
 		t->disk_fd = open(t->disk_filename,
@@ -634,9 +631,12 @@ static void task_download(task_t *t, task_t *tracker_task)
 		return;
 	}
 
+	message("* REACHED HERE\n");
+
 	// Read the file into the task buffer from the peer,
 	// and write it from the task buffer onto disk.
 	while (1) {
+		message("* REACHED HERE22\n");
 		int ret = read_to_taskbuf(t->peer_fd, t);
 		if (ret == TBUF_ERROR) {
 			error("* Peer read error");
