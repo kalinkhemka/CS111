@@ -1021,7 +1021,8 @@ int main(int argc, char *argv[])
 				exit(0);
 			} else if (child < 0){//ERROR
 				error("Fork error. Could not download file.\n");
-			}
+			} else
+				task_free(t);
 		}
 	}
 	//End 1 Code
