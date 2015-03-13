@@ -162,6 +162,7 @@ int md5_create(char *filename, char *digest)
 			buf[BUFFSIZE] = '\0';
 			
 			if (read_size == 0) { 
+				message("REACHED END OF CHECKSUM\n");
 				read_size = md5_finish_text(&s, digest, 1);
 				digest[read_size] = '\0';
 				close(f);
