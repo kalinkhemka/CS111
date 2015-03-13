@@ -151,7 +151,8 @@ static void task_free(task_t *t)
 #define BUFFSIZE 4096
 int md5_create(char *filename, char *digest)
 {
-	char buf[BUFFSIZE + 1];
+	//char buf[BUFFSIZE + 1];
+	char buf = malloc(sizeof(char) * BUFFSIZE);
 	md5_state_t s;
 	md5_init(&s);
 	int read_size, f;
@@ -169,6 +170,7 @@ int md5_create(char *filename, char *digest)
 				message("Digest: %s\n", digest);
 				message("Number of loops: %d\n", i);
 				close(f);
+				free buf;
 				return read_size;
 			}
 			md5_append(&s, (md5_byte_t*) buf, read_size);
