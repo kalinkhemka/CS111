@@ -541,9 +541,8 @@ static void task_download(task_t *t, task_t *tracker_task)
 		   && t->peer_list->port == listen_port)
 		goto try_again;
 	
-	// Security Attack: try a DOS attack
-	if (evil_mode == 2) 
-	{
+	// Exercise 3 - Try a Denial of Service attack
+	if (evil_mode == 2) {
 		message("* Try attacking %s:%d with '%s' DOS\n", 
 			inet_ntoa(t->peer_list->addr), 
 			t->peer_list->port, t->filename);
@@ -554,16 +553,16 @@ static void task_download(task_t *t, task_t *tracker_task)
 			goto try_again;
 		}
 		// attack repeatedly
-		while (1) 
-		{
+		while (1) {
 			t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
 			if (t->peer_fd == -1) {
-				error("* Successful DOS attack - user can' no longer't connect to peer any more: %s\n"
+				error("* Successful DOS attack - user can no longer connect to peer any more: %s\n"
 					, strerror(errno));
 				goto try_again;
 			}
 		}
 	}
+	//End 3 Code
 	
 	// Connect to the peer and write the GET command
 	message("* Connecting to %s:%d to download '%s'\n",
@@ -575,10 +574,9 @@ static void task_download(task_t *t, task_t *tracker_task)
 		goto try_again;
 	}
 	
-	// Security Attack: attempt buffer overflow
+	// Exercise 3 - Attempt buffer overflow
 	if (evil_mode == 1) {
 		message("* Try attacking with filename buffer overflow\n");
-
 		// create buffer overflow input
 		char overflow[FILENAMESIZ * 2];
 		memset(overflow, 1, FILENAMESIZ*2);
@@ -589,6 +587,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		// attempt with other peers
 		// goto try_again;
 	}
+	//End 3 Code
 	
 	osp2p_writef(t->peer_fd, "GET %s OSP2P\n", t->filename);
 
@@ -731,7 +730,7 @@ static void task_upload(task_t *t)
 		goto exit;
 	}
 
-	/*//Exercise 2B - Check that we are working only within current directory
+	//Exercise 2B - Check that we are working only within current directory
 	char path[PATH_MAX];
 	char work_dir[PATH_MAX];
 	if (!getcwd(work_dir, PATH_MAX)){
@@ -746,18 +745,7 @@ static void task_upload(task_t *t)
 		error("ERROR: %s not located within working directory.", t->filename);
 		goto exit;
 	}
-	//End 2B Code*/
-
-	//Execise 2B
-	//Check if file is from current directory
-	int k;
-	for (k = 0; k < FILENAMESIZ && t->filename[k] != '\0'; k++){
-		if (t->filename[k] == '/'){
-			error("ERROR: Accessing file not in the current directory.");
-			goto exit;
-		}
-	}
-	//End 2B
+	//End 2B Code
 
 	t->disk_fd = open(t->filename, O_RDONLY);
 	if (t->disk_fd == -1) {
@@ -767,7 +755,7 @@ static void task_upload(task_t *t)
 
 	message("* Transferring file %s\n", t->filename);
 	
-	// Security Attack: overrun disk
+	// Exercise 3 - Overrun disk
 	if (evil_mode == 3)
 		message("* Attack with a disk overrun.\n");
 	
@@ -885,7 +873,7 @@ int main(int argc, char *argv[])
 	register_files(tracker_task, myalias);
 	prev_task = NULL;
 
-	// Security Attack: begin downloader attacks in concurrent processes
+	// Exercise 3 - Begin downloader attacks in concurrent processes
 	if (evil_mode == 1 || evil_mode == 2) 
 	{
 		strncpy(file, "cat0.jpg", 8);
@@ -907,6 +895,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+	//End 3 Code
 
 	// First, download files named on command line.
 	//Exercise 1 - Parallel Downloads
