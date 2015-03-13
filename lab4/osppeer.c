@@ -148,12 +148,12 @@ static void task_free(task_t *t)
 /********************************************
 * MD5 Checksum Creator
 ********************************************/
-#define BUFFSIZE 4096
+/*#define BUFFSIZE 4096
 int md5_create(char *filename, char *digest)
 {
 	char buf[BUFFSIZE + 1];
-	md5_state_t s;
-	md5_init(&s);
+	md5_state_t *s;
+	md5_init(s);
 	int read_size, f;
 
 	if ((f = open(filename, O_RDONLY))) {
@@ -163,7 +163,7 @@ int md5_create(char *filename, char *digest)
 			
 			if (read_size == 0) { 
 				message("REACHED END OF CHECKSUM\n");
-				read_size = md5_finish_text(&s, digest, 1);
+				read_size = md5_finish_text(s, digest, 1);
 				digest[read_size] = '\0';
 				close(f);
 				return read_size;
@@ -173,8 +173,29 @@ int md5_create(char *filename, char *digest)
 	}
 	else
 		return 0;
-}
+}*/
 
+int md5_create(char *filename, char *digest)
+{
+	FILE *file;
+	file = fopen(filename, "r");
+	fseek(file, 0, SEEK_END);
+	unsigned long num_bytes = ftell(file);
+	fseek(file, 0, SEEK_SET);
+	unsigned char *file_bytes = malloc(sizeof(char) * num_bytes);
+	fread(file_bytes, 1, num_bytes, file);
+	//Start the md5
+	md5_state_t *pms = malloc(sizeof(md5_state_t));
+	md5_init(pms);
+	md5_append(pms, file_bytes, num_bytes);
+	//Append null terminator to end of result and also fill in result with md5
+	int retval = md5_finish_text(pms, digest, 1);
+	digest[retval] = '\0';
+	free(pms);
+	free(file_bytes);
+	fclose(file);
+	return retval;
+}
 
 
 /******************************************************************************
