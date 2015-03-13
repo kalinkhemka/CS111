@@ -163,7 +163,7 @@ void md5_create(char* result, char *file_name, unsigned long num_bytes)
 	
 	//Append null terminator to end of result and also fill in result with md5
 	int num_char = md5_finish_text(pms, result, 1);
-	result[num_char] = '\0';
+	result[MD5_TEXT_DIGEST_SIZE] = '\0';
 	
 	free(pms);
 	free(file_bytes);
@@ -651,15 +651,15 @@ static void task_download(task_t *t, task_t *tracker_task)
 	if (t->total_written > 0) {
 
 		//Before file is said to be downloaded, check the MD5 checksum
-		char *checksum = malloc(sizeof(char)*MD5_TEXT_DIGEST_MAX_SIZE);
+		char *checksum = malloc(sizeof(char)*MD5_TEXT_DIGEST_SIZE);
 		md5_create(checksum, t->disk_filename, (unsigned long) t->total_written);
 		
 		//Retrieve checksum from tracker
 		osp2p_writef(tracker_task->peer_fd, "MD5SUM %s\n", t->filename);
 		size_t messagepos = read_tracker_response(tracker_task);
-		char *tracker = malloc(sizeof(char) * MD5_TEXT_DIGEST_MAX_SIZE);
+		char *tracker = malloc(sizeof(char) * MD5_TEXT_DIGEST_SIZE);
 		strncpy(tracker, tracker_task->buf, messagepos-1);
-		tracker[(int)messagepos] = '\0';
+		tracker[MD5_TEXT_DIGEST_SIZE] = '\0';
 		
 		//Compare the two checksums
 		if(messagepos == 0 || tracker == NULL){
