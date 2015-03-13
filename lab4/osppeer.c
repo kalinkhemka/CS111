@@ -543,7 +543,10 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
-	
+
+	//Exercise 2A - Fix buffer overrun
+	strncpy(t->filename, filename, FILENAMESIZ);
+	t->filename[FILENAMESIZ - 1] = '\0';	
 	// check for the filename size
 	if (FILENAMESIZ <  strlen(t->filename)) 
 	{
@@ -551,9 +554,6 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		goto exit;
 	}
 
-	//Exercise 2A - Fix buffer overrun
-	strncpy(t->filename, filename, FILENAMESIZ);
-	t->filename[FILENAMESIZ - 1] = '\0';
 	//End 2A Code
 
 	// add peers
@@ -658,6 +658,8 @@ static void task_download(task_t *t, task_t *tracker_task)
 		}
 		//End 2B Code
 	}
+
+	message("* REACHED HERE88\n");
 
 	// Empty files are usually a symptom of some error.
 	if (t->total_written > 0) {
