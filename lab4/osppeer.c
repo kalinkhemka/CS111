@@ -152,7 +152,7 @@ static void task_free(task_t *t)
 int md5_create(char *filename, char *digest)
 {
 	char buf[BUFFSIZE + 1];
-	md5_state_t *s;
+	md5_state_t *s = NULL;
 	md5_init(s);
 	int read_size, f;
 
