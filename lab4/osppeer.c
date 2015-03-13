@@ -170,7 +170,7 @@ int md5_create(char *filename, char *digest)
 				message("Digest: %s\n", digest);
 				message("Number of loops: %d\n", i);
 				close(f);
-				free buf;
+				free (buf);
 				return read_size;
 			}
 			md5_append(&s, (md5_byte_t*) buf, read_size);
