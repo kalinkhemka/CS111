@@ -687,8 +687,8 @@ static void task_download(task_t *t, task_t *tracker_task)
 		//Check the MD5 checksum to make sure file matches
 		if (strlen(tracker_task->digest) > 0) {
 			char check_digest[128];
-			if (md5_create(t->disk_filename, check_digest) == 0) {
-				message("* Unable to create MD5 check for '%s'. \n", t->disk_filename);
+			if (md5_create(t->filename, check_digest) == 0) {
+				message("* Unable to create MD5 check for '%s'. \n", t->filename);
 				unlink(t->disk_filename);
 				task_free(t);
 				return;
