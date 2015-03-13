@@ -34,33 +34,66 @@ There was a strcpy command which would have caused the buffer overrun problem in
 the function "start_download". We changed it to a strncpy, where we limited the
 size of the file that could be copied to FILENAMESIZ. This will prevent the
 buffer overrun bug. 
-Added a check to make sure that if we repeatedly receive requests from the same peer
-we continue to allow for other peers to make requests as well.
 
 # EXERCISE 2B: What other robustness problems did you fix?  (~1-3 sentences
 #    each)
 
 1. Checked for the working directory
-2. Increased TASKBUFSIZE to prevent too many peers bug
+We checked to make sure that we were in the working directory by using some functions we
+discovered in on of the standard libraries. This check prevents anyone from accessing
+files in another directory outside of what we have available for downloading.
+
+2. Increased TASKBUFSIZ to prevent too many peers bug
+The bug in the code prevented our peer from connecting to too many peers at the same
+time. So to fix this, we simply increased the size of the TASKBUFSIZ. 
+
 3. Imposed a limit of 100MiB to prevent unlimited data downloading
+So that no one could simply send us an infinite amount of data to attempt to attack
+our peer, we implemented a file size limit. 100 MiB seemed reasonable for this project
+because no file that would probably be tested here would be that big. 
+
+4. Peer Hogging Check
+We added a check to make sure that if we repeatedly receive requests from the same peer,
+we move on to another peer to prevent one peer from continuosly hogging our peer
+and probably prevent an attack.
+
+5. MD5 File Integrity Check (Extra Credit)
 
 # EXERCISE 3: Describe the attacks you implemented for "evil mode".  Why
 #    are they attacks?  (~3-10 sentences each)
 
-When we are tasked to execute in evil mode, we fork the system and begin attacking.
+Download Attacks: When evil_mode is set, we fork the current process and begin
+a recursive attack call in the child.
 
-Buffer Overflow: attempt an overflow on the file name by creating an input of
-junk and writing it to the peer. Send a GET request with a large filename bigger
-than the buffer not ending in the null byte so that when the peer attempts to run
-strcpy on the filename, the peer will fail if they don't check file name size.
+1. Filename Buffer Overflow
+We get a list of all the peers currently on the port and then connect to the
+first one. We then attempt a filename buffer overflow where we request a file whose 
+name is too large to be stored in the corresponding buffer.
 
-Peer Overflow: repeatedly send requests to the peer in order to cause failure. If
-we send a lot of open_sockets to requests for a file, the peer will get bogged down
-trying to schedule and service these requests, which fills up the buffer.
+2. Access File Outside Current Directory
+Then we attempt to access files that aren't in the current directory. If this is
+successful, we can access files that the peer would not want anyone to gain access to
+and we could then get sensitive information.
 
-Disk Overflow: repeatedly upload data to a peer to overload the disk until failure.
+3. Peer Overflow
+Lastly, we try to run a peer overflow attack. We open up many sockets and from
+each one, we request a file from the peer being attacked. Eventually, the peer will
+get bogged down and the buffer will fill. This will cause a denial of service. 
+
+We run these attacks recursively to attack every single peer on the network.
+
+Upload Attacks: This is simply run when another peer is requesting a file.
+
+1. Disk Buffer Overflow
+When the peer requests a file, instead of sending them the correct data they are
+looking for, we start to send an infinite amount of data until the peer is unable
+to place any more data in the buffer, at which point our attack has succeeded. This
+attack could end up messing up with the peer's hard drive data. 
 
 # Extra credit problems
 #Extra credit problem: Implemented MD5 Check for file integrity.
 
 # Add any other information you'd like us to know below this line.
+The checksums on port 12997 were wrong. Spent many hours trying to figure out
+what was wrong with my code, only to have a friend tell me that the checksums
+on the server were wrong. 
