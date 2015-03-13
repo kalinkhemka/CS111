@@ -460,7 +460,11 @@ static void register_files(task_t *tracker_task, const char *myalias)
 		    || (namelen > 1 && ent->d_name[namelen - 1] == '~'))
 			continue;
 
-		osp2p_writef(tracker_task->peer_fd, "HAVE %s\n", ent->d_name);
+		//File is registered with a checksum
+		char *checksum = malloc(sizeof(char)*MD5_TEXT_DIGEST_MAX_SIZE);
+		md5_create(ent->d_name, checksum);
+
+		osp2p_writef(tracker_task->peer_fd, "HAVE %s %s\n", ent->d_name, checksum);
 		messagepos = read_tracker_response(tracker_task);
 		if (tracker_task->buf[messagepos] != '2')
 			error("* Tracker error message while registering '%s':\n%s",
@@ -515,7 +519,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		
 		if(tracker_task->buf[messagepos] == '2') {
 			osp2p_snscanf(s1, (s2 - s1), "%s\n", tracker_task->digest);
-			tracker_task->digest[MD5_TEXT_DIGEST_MAX_SIZE /*- 1*/] = '\0';
+			tracker_task->digest[MD5_TEXT_DIGEST_MAX_SIZE - 1] = '\0';
 			if (strlen(tracker_task->digest) < 5) {
 				strcpy(tracker_task->digest, "");
 				message("* Rejected checksum for '%s'. Checksum too short.\n", filename);
@@ -545,15 +549,14 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	}
 
 	//Exercise 2A - Fix buffer overrun
-	strncpy(t->filename, filename, FILENAMESIZ);
-	t->filename[FILENAMESIZ - 1] = '\0';	
 	// check for the filename size
 	if (FILENAMESIZ <  strlen(t->filename)) 
 	{
 		error("* Error: filename is too large.\n");
 		goto exit;
 	}
-
+	strncpy(t->filename, filename, FILENAMESIZ);
+	t->filename[FILENAMESIZ - 1] = '\0';	
 	//End 2A Code
 
 	// add peers
