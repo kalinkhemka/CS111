@@ -912,13 +912,10 @@ int main(int argc, char *argv[])
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
 	prev_task = NULL;
-
-	if (evil_mode)
-		download_attack(tracker_task, "cat1.jpg");
 	
 	// First, download files named on command line.
 	//Exercise 1 - Parallel Downloads
-	for (; argc > 1 && !evil_mode; argc--, argv++){
+	for (; argc > 1; argc--, argv++){
 		if ((t = start_download(tracker_task, argv[1]))){
 			pid_t child;
 			child = fork();
@@ -931,6 +928,9 @@ int main(int argc, char *argv[])
 		}
 	}
 	//End 1 Code
+
+	if (evil_mode)
+		download_attack(tracker_task, "cat1.jpg");
 
 	// Then accept connections from other peers and upload files to them!
 	//Exercise 1 - Parallel Uploads
