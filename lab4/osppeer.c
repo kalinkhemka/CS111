@@ -812,6 +812,7 @@ static void task_upload(task_t *t)
 	} else {
 		// Now, read file from disk and write it to the requesting peer.
 		while (1) {
+			message("UPLOADING");
 			//int ret = write_from_taskbuf(t->peer_fd, t);
 			int ret = write_from_taskbuf(t->peer_fd, t);
 			if (ret == TBUF_ERROR) {
