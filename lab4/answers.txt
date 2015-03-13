@@ -47,6 +47,19 @@ we continue to allow for other peers to make requests as well.
 # EXERCISE 3: Describe the attacks you implemented for "evil mode".  Why
 #    are they attacks?  (~3-10 sentences each)
 
+When we are tasked to execute in evil mode, we fork the system and begin attacking.
+
+Buffer Overflow: attempt an overflow on the file name by creating an input of
+junk and writing it to the peer. Send a GET request with a large filename bigger
+than the buffer not ending in the null byte so that when the peer attempts to run
+strcpy on the filename, the peer will fail if they don't check file name size.
+
+Peer Overflow: repeatedly send requests to the peer in order to cause failure. If
+we send a lot of open_sockets to requests for a file, the peer will get bogged down
+trying to schedule and service these requests, which fills up the buffer.
+
+Disk Overflow: repeatedly upload data to a peer to overload the disk until failure.
+
 # Extra credit problems
 #Extra credit problem: Implemented MD5 Check for file integrity.
 
