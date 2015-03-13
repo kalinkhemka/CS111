@@ -471,8 +471,8 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	size_t messagepos;
 	assert(tracker_task->type == TASK_TRACKER);
 
-	if (evil_mode)
-		filename = "";
+	//if (evil_mode)
+	//	filename = "";
 	
 	message("* Finding peers for '%s'\n", filename);
 	
