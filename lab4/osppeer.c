@@ -652,7 +652,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 
 		//Before file is said to be downloaded, check the MD5 checksum
 		char *checksum = malloc(sizeof(char)*MD5_TEXT_DIGEST_MAX_SIZE);
-		md5_convert(checksum, t->disk_filename, (unsigned long) t->total_written);
+		md5_create(checksum, t->disk_filename, (unsigned long) t->total_written);
 		
 		//Retrieve checksum from tracker
 		osp2p_writef(tracker_task->peer_fd, "MD5SUM %s\n", t->filename);
