@@ -155,17 +155,19 @@ int md5_create(char *filename, char *digest)
 	md5_state_t s;
 	md5_init(&s);
 	int read_size, f;
+	int i = 0;
 
 	if ((f = open(filename, O_RDONLY))) {
 		while (1) {
 			read_size = (int) read(f, buf, BUFFSIZE);
 			buf[BUFFSIZE] = '\0';
-			
+			i++;
 			if (read_size == 0) { 
 				message("REACHED END OF CHECKSUM\n");
 				read_size = md5_finish_text(&s, digest, 1);
 				digest[read_size] = '\0';
 				message("Digest: %s\n", digest);
+				message("Number of loops: %d\n", i);
 				close(f);
 				return read_size;
 			}
