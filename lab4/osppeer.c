@@ -754,8 +754,10 @@ DIR *dir;
 struct dirent *ent;
 struct stat s;
 int file_exists = 0;
-if ((dir = opendir(".")) == NULL)
+if ((dir = opendir(".")) == NULL){
+die("bad filename %s", t->filename);
 die("open directory: %s", strerror(errno));
+}
 //Checks that there is a file in current directory with the file
 while ((ent = readdir(dir)) != NULL) {
 int namelen = strlen(ent->d_name);
