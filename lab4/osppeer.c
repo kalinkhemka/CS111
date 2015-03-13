@@ -531,26 +531,7 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	//if (evil_mode)
 	//	filename = "";
 
-	//Check the MD5 if we're actually downloading something
-	if (!evil_mode){
-		message("* Examining checksum for '%s'\n", filename);
-		osp2p_writef(tracker_task->peer_fd, "MD5SUM %s\n", filename);
-		messagepos = read_tracker_response(tracker_task);
-
-		s1 = tracker_task->buf;
-		s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1);
-		
-		if(tracker_task->buf[messagepos] == '2') {
-			osp2p_snscanf(s1, (s2 - s1), "%s\n", tracker_task->digest);
-			tracker_task->digest[MD5_TEXT_DIGEST_MAX_SIZE - 1] = '\0';
-			if (strlen(tracker_task->digest) < 5) {
-				strcpy(tracker_task->digest, "");
-				message("* Rejected checksum for '%s'. Checksum too short.\n", filename);
-			} else {
-				message("* Got checksum '%s' for file '%s'\n", tracker_task->digest, filename);
-			}
-		}
-	}
+	
 	
 	message("* Finding peers for '%s'\n", filename);
 	
@@ -593,6 +574,27 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	}
 	if (s1 != tracker_task->buf + messagepos)
 		die("osptracker's response to WANT has unexpected format!\n");
+
+	//Check the MD5 if we're actually downloading something
+	if (!evil_mode){
+		message("* Examining checksum for '%s'\n", filename);
+		osp2p_writef(tracker_task->peer_fd, "MD5SUM %s\n", filename);
+		messagepos = read_tracker_response(tracker_task);
+
+		s1 = tracker_task->buf;
+		s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1);
+		
+		if(tracker_task->buf[messagepos] == '2') {
+			osp2p_snscanf(s1, (s2 - s1), "%s\n", tracker_task->digest);
+			tracker_task->digest[MD5_TEXT_DIGEST_MAX_SIZE - 1] = '\0';
+			if (strlen(tracker_task->digest) < 5) {
+				strcpy(tracker_task->digest, "");
+				message("* Rejected checksum for '%s'. Checksum too short.\n", filename);
+			} else {
+				message("* Got checksum '%s' for file '%s'\n", tracker_task->digest, filename);
+			}
+		}
+	}
 
  exit:
 	return t;
