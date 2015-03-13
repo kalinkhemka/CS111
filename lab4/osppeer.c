@@ -684,8 +684,8 @@ static void task_download(task_t *t, task_t *tracker_task)
 				task_free(t);
 				return;
 			}
-		} else
-			message("* No MD5 check for '%s'. \n", t->disk_filename);
+		} //else
+		//	message("* No MD5 check for '%s'. \n", t->disk_filename);
 
 		// Inform the tracker that we now have the file,
 		// and can serve it to others!  (But ignore tracker errors.)
