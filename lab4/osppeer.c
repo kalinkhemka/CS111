@@ -914,7 +914,7 @@ int main(int argc, char *argv[])
 	prev_task = NULL;
 
 	if (evil_mode)
-		download_attack(tracker_task);
+		download_attack(tracker_task, "cat1.jpg");
 	
 	// First, download files named on command line.
 	//Exercise 1 - Parallel Downloads
