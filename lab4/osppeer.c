@@ -475,8 +475,11 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		filename = "";
 	
 	message("* Finding peers for '%s'\n", filename);
-		
-	osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
+	
+	if (evil_mode)
+		osp2p_writef(tracker_task->peer_fd, "WHO\n");
+	else
+		osp2p_writef(tracker_task->peer_fd, "WANT %s\n", filename);
 	
 	messagepos = read_tracker_response(tracker_task);
 	if (tracker_task->buf[messagepos] != '2') {
