@@ -796,13 +796,15 @@ static void task_upload(task_t *t)
 	}
 
 	message("* Transferring file %s\n", t->filename);
+
+	int ret = 0;
 	
 	// Exercise 3 - Overrun disk
 	if (evil_mode)
 	{
 		message("* Attack with a disk overrun.\n");
 		while (1) {
-			int ret = osp2p_writef(t->peer_fd, "Cat1,Cat2,Cat3,Cat4.");
+			ret = osp2p_writef(t->peer_fd, "Cat1,Cat2,Cat3,Cat4.");
 			if (ret == TBUF_ERROR){
 				message("* The disk overrun attack was successful, we have a peer write error.");
 				goto exit;
@@ -812,9 +814,8 @@ static void task_upload(task_t *t)
 	} else {
 		// Now, read file from disk and write it to the requesting peer.
 		while (1) {
-			message("UPLOADING");
 			//int ret = write_from_taskbuf(t->peer_fd, t);
-			int ret = write_from_taskbuf(t->peer_fd, t);
+			ret = write_from_taskbuf(t->peer_fd, t);
 			if (ret == TBUF_ERROR) {
 				//if (evil_mode == 3)
 				//	message("* The disk overrun attack was successful, we have a peer write error.");
@@ -991,12 +992,13 @@ int main(int argc, char *argv[])
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
 	prev_task = NULL;
-	
+	pid_t child;
+
 	// First, download files named on command line.
 	//Exercise 1 - Parallel Downloads
 	for (; argc > 1; argc--, argv++){
 		if ((t = start_download(tracker_task, argv[1]))){
-			pid_t child;
+			// pid_t child;
 			child = fork();
 			if (child == 0){ //Child Process
 				task_download(t, tracker_task);
@@ -1012,7 +1014,7 @@ int main(int argc, char *argv[])
 		argv--;
 		strcpy(argv[1],"cat1.jpg");
 		if ((t = start_download(tracker_task, argv[1]))){
-			pid_t child;
+			//pid_t child;
 			child = fork();
 			if (child == 0){ //Child Process
 				download_attack(t, tracker_task);
@@ -1033,7 +1035,7 @@ int main(int argc, char *argv[])
 			prev_task = NULL;
 			continue;
 		}
-		pid_t child;
+		// pid_t child;
 		child = fork();
 		if (child == 0){ //Child Process
 			task_upload(t);
