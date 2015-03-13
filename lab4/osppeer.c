@@ -647,13 +647,13 @@ static void task_download(task_t *t, task_t *tracker_task)
 		} else if (ret == TBUF_END && t->head == t->tail)
 			/* End of file */
 			break;
-
+		message("* REACHED HERE33\n");
 		ret = write_from_taskbuf(t->disk_fd, t);
 		if (ret == TBUF_ERROR) {
 			error("* Disk write error");
 			goto try_again;
 		}
-
+		message("* REACHED HERE44\n");
 		//Exercise 2B - Check to make sure our max file size isn't passed
 		if (t->total_written > MAXFILESIZ){
 			error("ERROR: File has exceeded max size allowed. Retrying with new peer.");
