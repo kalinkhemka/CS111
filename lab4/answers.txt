@@ -48,6 +48,6 @@ we continue to allow for other peers to make requests as well.
 #    are they attacks?  (~3-10 sentences each)
 
 # Extra credit problems
-#Extra credit problem: none
+#Extra credit problem: Implemented MD5 Check for file integrity.
 
 # Add any other information you'd like us to know below this line.

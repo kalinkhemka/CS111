@@ -594,8 +594,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 		   && t->peer_list->port == listen_port)
 		goto try_again;
 	
-	
-	
 	// Connect to the peer and write the GET command
 	message("* Connecting to %s:%d to download '%s'\n",
 		inet_ntoa(t->peer_list->addr), t->peer_list->port,
@@ -605,7 +603,6 @@ static void task_download(task_t *t, task_t *tracker_task)
 		error("* Cannot connect to peer: %s\n", strerror(errno));
 		goto try_again;
 	}
-	
 	osp2p_writef(t->peer_fd, "GET %s OSP2P\n", t->filename);
 
 	// Open disk file for the result.
@@ -616,7 +613,7 @@ static void task_download(task_t *t, task_t *tracker_task)
 		if (i == 0)
 		{
 			strcpy(t->disk_filename, t->filename);
-			t->disk_filename[FILENAMESIZ - 1] = '\0';
+			//t->disk_filename[FILENAMESIZ - 1] = '\0';
 		}
 		else
 			sprintf(t->disk_filename, "%s~%d~", t->filename, i);
