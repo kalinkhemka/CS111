@@ -91,7 +91,8 @@ to place any more data in the buffer, at which point our attack has succeeded. T
 attack could end up messing up with the peer's hard drive data. 
 
 # Extra credit problems
-#Extra credit problem: Implemented MD5 Check for file integrity.
+#Extra credit problem:
+Implemented MD5 Check for file integrity.
 
 # Add any other information you'd like us to know below this line.
 The checksums on port 12997 were wrong. Spent many hours trying to figure out
